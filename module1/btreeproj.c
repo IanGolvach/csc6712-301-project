@@ -32,15 +32,52 @@
  * If greater than all in node, take the tail pointer
  * If the key is in the node, use the cell's value.
  *
- * Splits?
+ * Splits
+ *
+ * If 2d is exceeded, create two nodes and use the middle key as the differentiator in the parent node
+ * 
+ * Look in the book for a better algorithmic explanation
+ * 
+ * Merges
+ * If below d, redistribute keys among the other nodes.
+ * 
+ * Look in the book for a better algorithmic explanation.
+ * 
+ * --------------------------------------------
+ *
+ * Asking for constraints in class
+ *
+ * Memory map?
+ * -> What retert did in his own implementation of the project. 
+ * -> man mmap (it's in the C std library)
+ * -> How to represent the file in the program. 
+ *
+ * Amount of pages in memory
+ * -> Theoretically allowed to have all the pages you have traversed inside memory at once.
+ * -> May be a good idea to just have one page at a time for simplicity sake, but will make traversal slower (more overhead).
+ *
+ * --------------------------------------------
+ * 
+ * Traversal and you!
+ *
+ * Each 'pointer' is an index in the page file. In order to get to that index, you simply need to go the fd at byte pagesize*index. Then, read in the entire pagesize.
+ *
+ * Intracell traversal can be done rather easily in these steps
+ * -> The first cell will be at index headersize.
+ * -> Each progressive cell starts at headersize+(cellsize*cellidx).
+ * -> Use the respective offsets to increment from this starting point to read the various values
+ *    * Key is [keyoffset:valueoffset]
+ *    * Value is [valueoffset:pointeroffset]
+ *    * Pointer Offset is [pointeroffset:cellsize]
+ * -> Remember! The pointer in a cell is for values BEFORE the key value, not after. If all are before, the final pointer at the end will be the after pointer.
+ * 
+ * If you intend on keeping track of the links of pages you went through to get to a page (instead of just using the header parent pointer), you may want to create
+ *   a simple linked list structure that can automate the malloc and freeing for you!
  *
  *
- * Merges?
- * 
- * 
  * */
 
 
-#include btreeproj.h
+#include "btreeproj.h"
 
 
