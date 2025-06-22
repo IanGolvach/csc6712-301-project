@@ -80,4 +80,51 @@
 
 #include "btreeproj.h"
 
+/*
+ * Useful Documentation
+ * Opening files general guide: https://www.w3schools.com/c/c_files_read.php
+ * IO command reference: https://en.cppreference.com/w/c/io.html
+ * 
+ * 
+ * fseek with SEEK_SET will be useful for changing between nodes
+ * Remember to open files in BINARY mode
+ * fsync can be used to force writes back to disk. 
+ */
+
+/**
+ * @brief Finds the value of a given key if it exists in the btree, gives a pointer back to its temporary location in memory.
+ * @return 1 if anything is found, otherwise 0. Return actual value to ret.
+ */
+int btree_findkey(int* buffer, int filedesc, char key[64], char ret[64]){
+    // Load ROOT
+    
+    // Search ROOT for key OR next child pointer
+
+    // Traverse down until LEAF is reached without success or until the KEY is found
+
+    // If no key is found, return 0 and set ret to NULL
+
+    // Else, if a key is found, copy the value to ret and return 1.
+}
+
+/**
+ * @brief Add a value to the DB in the specified filedesc, prev will return the previous value if it exists, otherwise will become NULL
+ * @return 1 if key replace, 0 if key added, -1 if key can't be added
+ */
+int btree_addvalue(int* buffer, int filedesc, char key[64], char val[64], char prev[64]){
+    // Load ROOT
+    
+    // Search ROOT for key OR next child pointer
+
+    // Traverse down until LEAF is reached without success or until the KEY is found
+
+    // If no key is found, insert key on LEAF and split if necessary (see split pngs), set prev to NULL and return 0
+
+      // SPLIT PROCEDURE
+       // LEAF NODES: Split the leaf in half, first key of the second half is added to the parent with an after pointer to the others
+        // Second half keys and parent idx need to stay in-memory after deletion of second half from OG and switching to new unoccupied page. Splitting key and indexes of both pages must stay in-memory when switching to parent.
+       // NONLEAF NODES: Split the leaf in half, first key of the secon d half is addeed to the parent, original after pointer becomes the before pointer of new node.
+
+    // Else, if a key is found replace the value at the key and set prev to the value, return 1
+}
 
