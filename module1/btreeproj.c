@@ -79,6 +79,9 @@
 
 
 #include "btreeproj.h"
+#include <stdio.h>
+#include <gmp.h>
+#include <stdbool.h>
 
 /*
  * Useful Documentation
@@ -95,11 +98,16 @@
  * @brief Finds the value of a given key if it exists in the btree, gives a pointer back to its temporary location in memory.
  * @return 1 if anything is found, otherwise 0. Return actual value to ret.
  */
-int btree_findkey(int* buffer, int filedesc, char key[64], char ret[64]){
+int btree_findkey(int* buffer, FILE* treeFile, mpz_t key, mpz_t ret){
     // Load ROOT
-    
+    rewind(treeFile);
     // Search ROOT for key OR next child pointer
-
+    mpz_t comp_key; // Comparison key
+    
+    bool found = false;
+    int idx = 0;
+    // set the CMP key to the first key
+    while( !found && idx < )
     // Traverse down until LEAF is reached without success or until the KEY is found
 
     // If no key is found, return 0 and set ret to NULL
@@ -111,7 +119,7 @@ int btree_findkey(int* buffer, int filedesc, char key[64], char ret[64]){
  * @brief Add a value to the DB in the specified filedesc, prev will return the previous value if it exists, otherwise will become NULL
  * @return 1 if key replace, 0 if key added, -1 if key can't be added
  */
-int btree_addvalue(int* buffer, int filedesc, char key[64], char val[64], char prev[64]){
+int btree_addvalue(int* buffer, FILE* treeFile, mpz_t key, mpz_t val, mpz_t prev){
     // Load ROOT
     
     // Search ROOT for key OR next child pointer

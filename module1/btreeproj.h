@@ -101,7 +101,7 @@ const int bt1_branching_factor = 16; // No more than 2d cells per page, d is bra
  * @brief Finds the value of a given key if it exists in the btree, gives a pointer back to its temporary location in memory.
  * @return 1 if anything is found, otherwise 0. Return actual value to ret.
  */
-int btree_findkey(int* buffer, int filedesc, char key[64], char ret[64]);
+int btree_findkey(int* buffer, FILE* treeFile, mpz_t key, mpz_t ret);
 
 // Load root into buffer, traverse tree until either key is found or no key exists.
 // If key is found, replace key value and return 1
@@ -111,7 +111,7 @@ int btree_findkey(int* buffer, int filedesc, char key[64], char ret[64]);
  * @brief Add a value to the DB in the specified filedesc, prev will return the previous value if it exists, otherwise will become NULL
  * @return 1 if key replace, 0 if key added, -1 if key can't be added
  */
-int btree_addvalue(int* buffer, int filedesc, char key[64], char val[64], char prev[64]);
+int btree_addvalue(int* buffer, FILE* treeFile, mpz_t key, mpz_t val, mpz_t prev);
 
 // Load root into buffer, traverse tree until either key is found or no key exists.
 // If key is found, remove and merge as necessary, return 0.
@@ -120,5 +120,5 @@ int btree_addvalue(int* buffer, int filedesc, char key[64], char val[64], char p
  * @brief Optional method to implement if time allows, to remove a value
  * @return
  */
-int btree_removevalue(int* buffer, int filedesc, char val[64]);
+int btree_removevalue(int* buffer, FILE* treeFile, char val[64]);
 
