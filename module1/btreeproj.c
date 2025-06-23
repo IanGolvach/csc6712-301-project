@@ -99,15 +99,32 @@
  * @return 1 if anything is found, otherwise 0. Return actual value to ret.
  */
 int btree_findkey(int* buffer, FILE* treeFile, mpz_t key, mpz_t ret){
+
+    char pageBuffer[bt1_pagesize];
     // Load ROOT
     rewind(treeFile);
+    fread(pageBuffer, 1, bt1_pagesize, treeFile);
     // Search ROOT for key OR next child pointer
     mpz_t comp_key; // Comparison key
     
-    bool found = false;
-    int idx = 0;
+    int idx;
     // set the CMP key to the first key
-    while( !found && idx < )
+    //fseek(treeFile, bt1_headersize, SEEK_SET);
+    int cmp_result = 1;
+    for(idx = 0; cmp_result > 0 && idx < bt1_cellsperpage; idx++){
+        fseek(treeFile, bt1_headersize+(bt1_cellsize*idx), SEEK_SET);
+        fread(keyBuffer, 1, bt1_keysize, treeFile);
+        mpz_inp_raw(comp_key, keyBuffer);
+        cmp_result = mpz_cmp(key, comp_key);
+    }
+    if(idx != bt1_cellsperpage){
+        // Stopped mid move, check if less than or equal
+        if(cmp_result==0){
+            // It's equal, return the key
+        } else {
+            // Read the next page of memory
+        }
+    }
     // Traverse down until LEAF is reached without success or until the KEY is found
 
     // If no key is found, return 0 and set ret to NULL

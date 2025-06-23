@@ -95,6 +95,10 @@ const int bt1_tailsize = 4;
 
 const int bt1_branching_factor = 16; // No more than 2d cells per page, d is branch_factor - 1
 
+const int bt1_keysize = 64;
+
+const int bt1_valsize = 64;
+
 // Load root into buffer, traverse tree until either key is found or no key exists.
 // Return NULL if no such key exists, otherwise return pointer to value.
 /**
