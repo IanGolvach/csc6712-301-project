@@ -80,8 +80,8 @@
 
 #include "btreeproj.h"
 #include <stdio.h>
-#include <gmp.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 /*
  * Useful Documentation
@@ -95,36 +95,75 @@
  */
 
 /**
+ * @brief Compare arrays
+ * @return 1 if key1 is greater than key2, 0 if keys are equal, -1 if key1 is less than key2
+ */
+int btree_keycmp(uint8_t key1[64], uint8_t key2[64]){
+    for(int i = 0; i < 64; i++){
+        if(key1[i] > key2[i]){
+            return 1;
+        } else if (key1[i] < key2[i]){
+            return -1;
+        }
+    }
+    return 0;
+}
+
+uint64_t btree_pointertoint(uint8_t pointer[4]){
+    return (pointer[0] * (16*16*16)) + (pointer[1] * (16*16)) + (pointer[2] * 16) + pointer[3];
+}
+
+
+/**
  * @brief Finds the value of a given key if it exists in the btree, gives a pointer back to its temporary location in memory.
  * @return 1 if anything is found, otherwise 0. Return actual value to ret.
  */
-int btree_findkey(int* buffer, FILE* treeFile, mpz_t key, mpz_t ret){
+int btree_findkey(int* buffer, FILE* treeFile, uint8_t key[64], uint8_t ret[64]){
 
-    char pageBuffer[bt1_pagesize];
+    uint8_t pageBuffer[bt1_pagesize];
     // Load ROOT
     rewind(treeFile);
-    fread(pageBuffer, 1, bt1_pagesize, treeFile);
+    fread(pageBuffer, sizeof(pageBuffer[0]), bt1_pagesize, treeFile);
     // Search ROOT for key OR next child pointer
-    mpz_t comp_key; // Comparison key
-    
-    int idx;
-    // set the CMP key to the first key
-    //fseek(treeFile, bt1_headersize, SEEK_SET);
-    int cmp_result = 1;
-    for(idx = 0; cmp_result > 0 && idx < bt1_cellsperpage; idx++){
-        fseek(treeFile, bt1_headersize+(bt1_cellsize*idx), SEEK_SET);
-        fread(keyBuffer, 1, bt1_keysize, treeFile);
-        mpz_inp_raw(comp_key, keyBuffer);
-        cmp_result = mpz_cmp(key, comp_key);
-    }
-    if(idx != bt1_cellsperpage){
-        // Stopped mid move, check if less than or equal
-        if(cmp_result==0){
-            // It's equal, return the key
-        } else {
-            // Read the next page of memory
+    uint8_t comp_key[64]; // Comparison key, may not be necessary
+    while(true){ // search until an end is found
+        int idx;
+        // set the CMP key to the first key
+        //fseek(treeFile, bt1_headersize, SEEK_SET);
+        int cmp_result = 1;
+        for(idx = 0; idx < bt1_cellsperpage; idx++){
+            cmp_result = btree_keycmp(key, &pageBuffer[bt1_headersize+(bt1_cellsize*idx)]);
+            if(cmp_result <= 0){
+                break;
+            }
         }
-    }
+        if(idx < bt1_cellsperpage){
+            // Stopped mid move, check if less than or equal
+            if(cmp_result==0){
+                // It's equal
+                for(int i = 0; i < 64; i++){
+                    ret[i] = pageBuffer[bt1_headersize+bt1_cellvalueoffeset+(bt1_cellsize*idx)+i];
+                }
+                return 1;
+            } else {
+                // It's less than the key, read the next page of memory
+                long pageIdx = btree_pointertoint(&pageBuffer[bt1_headersize+bt1_cellpointeroffset+(bt1_cellsize*idx)]);
+                if(pageIdx == 0){
+                    return 0; // Pointer is NULL, no key exists
+                }
+                fseek(treeFile, pageIdx*bt1_pagesize, SEEK_SET);
+                fread(pageBuffer, sizeof(pageBuffer[0]), bt1_pagesize, treeFile);
+            }
+        } else {
+            // Key is greater than all on this page, take the last pointer.
+            long pageIdx = btree_pointertoint(&pageBuffer[bt1_headersize+(bt1_cellsize*bt1_cellsperpage)]);
+            if(pageIdx == 0){
+                return 0; // Pointer is NULL, no key exists
+            }
+            fseek(treeFile, pageIdx*bt1_pagesize, SEEK_SET);
+            fread(pageBuffer, sizeof(pageBuffer[0]), bt1_pagesize, treeFile);
+        }
+}
     // Traverse down until LEAF is reached without success or until the KEY is found
 
     // If no key is found, return 0 and set ret to NULL
@@ -136,9 +175,87 @@ int btree_findkey(int* buffer, FILE* treeFile, mpz_t key, mpz_t ret){
  * @brief Add a value to the DB in the specified filedesc, prev will return the previous value if it exists, otherwise will become NULL
  * @return 1 if key replace, 0 if key added, -1 if key can't be added
  */
-int btree_addvalue(int* buffer, FILE* treeFile, mpz_t key, mpz_t val, mpz_t prev){
+int btree_addvalue(int* buffer, FILE* treeFile, uint8_t key[64], uint8_t val[64], uint8_t prev[64]){
     // Load ROOT
-    
+    uint8_t pageBuffer[bt1_pagesize];
+    bool stopLooking = false;
+    bool keyExists;
+    bool splitNeeded = false;
+    // Load ROOT
+    rewind(treeFile);
+    fread(pageBuffer, sizeof(pageBuffer[0]), bt1_pagesize, treeFile);
+    // Search ROOT for key OR next child pointer
+    uint8_t comp_key[64]; // Comparison key, may not be necessary
+    int idx;
+    long pageIdx = 0;
+    while(!stopLooking){ // search until an end is found
+        // set the CMP key to the first key
+        //fseek(treeFile, bt1_headersize, SEEK_SET);
+        int cmp_result = 1;
+        for(idx = 0; idx < bt1_cellsperpage; idx++){
+            cmp_result = btree_keycmp(key, &pageBuffer[bt1_headersize+(bt1_cellsize*idx)]);
+            if(cmp_result <= 0){
+                break;
+            }
+        }
+        if(idx < bt1_cellsperpage){
+            // Stopped mid move, check if less than or equal
+            if(cmp_result==0){
+                // It's equal
+                for(int i = 0; i < 64; i++){
+                    prev[i] = pageBuffer[bt1_headersize+bt1_cellvalueoffeset+(bt1_cellsize*idx)+i];
+                    pageBuffer[bt1_headersize+bt1_cellvalueoffeset+(bt1_cellsize*idx)+i] = val[i];
+                }
+                stopLooking = true;
+                keyExists = true;
+            } else {
+                // It's less than the key, read the next page of memory
+                pageIdx = btree_pointertoint(&pageBuffer[bt1_headersize+bt1_cellpointeroffset+(bt1_cellsize*idx)]);
+                if(pageIdx == 0){
+                    stopLooking = true;
+                    keyExists = false; // Pointer is NULL, no key exists
+                } else {
+                    fseek(treeFile, pageIdx*bt1_pagesize, SEEK_SET);
+                    fread(pageBuffer, sizeof(pageBuffer[0]), bt1_pagesize, treeFile);
+                }
+            }
+        } else {
+            // Key is greater than all on this page, take the last pointer.
+            pageIdx = btree_pointertoint(&pageBuffer[bt1_headersize+(bt1_cellsize*bt1_cellsperpage)]);
+            if(pageIdx == 0){
+                stopLooking = true;
+                keyExists = false; // Pointer is NULL, no key exists
+                splitNeeded = true; // Keys are full, must split.
+            } else {
+                fseek(treeFile, pageIdx*bt1_pagesize, SEEK_SET);
+                fread(pageBuffer, sizeof(pageBuffer[0]), bt1_pagesize, treeFile);
+            }
+        }
+    }
+    if(keyExists){
+        // no need to check if split necessary, just write the buffer
+        fseek(treeFile, pageIdx*bt1_pagesize, SEEK_SET);// Reset file position to beginning of page
+        fwrite(pageBuffer, sizeof(pageBuffer[0]), bt1_pagesize, treeFile); // Write to page
+    } else {
+        // If split necessity unknown, check entire page for space
+        if(!splitNeeded){ // check if split necessary.
+            int count = 0;
+            uint8_t nullKey[64] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+            for(int i = 0; i < bt1_cellsperpage; i++){
+                if(btree_keycmp(&pageBuffer[bt1_headersize+(bt1_cellsize*i)], nullKey)!=0){
+                    count++;
+                }
+            }
+            splitNeeded = count >= bt1_cellsperpage;
+        }
+        if(!splitNeeded){
+            // split still not needed, add key and shift all values right.
+        } else {
+            // split needed, determine whether new key stays on page or moves
+            // then perform the split.
+        }
+    }
+        
     // Search ROOT for key OR next child pointer
 
     // Traverse down until LEAF is reached without success or until the KEY is found

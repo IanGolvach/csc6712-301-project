@@ -18,7 +18,7 @@
  *
  * 4 byte tail pointer
  *
- * = 3964 bytes per page
+ * = 3968 bytes per page
  *
  * Rest is filled with NULL bytes for padding.
  *
@@ -76,6 +76,7 @@
  *
  *
  * */
+#include <stdint.h>
 
 const int bt1_pagesize = 4096;
 
@@ -105,7 +106,7 @@ const int bt1_valsize = 64;
  * @brief Finds the value of a given key if it exists in the btree, gives a pointer back to its temporary location in memory.
  * @return 1 if anything is found, otherwise 0. Return actual value to ret.
  */
-int btree_findkey(int* buffer, FILE* treeFile, mpz_t key, mpz_t ret);
+int btree_findkey(int* buffer, FILE* treeFile, uint8_t key[64], uint8_t ret[64]);
 
 // Load root into buffer, traverse tree until either key is found or no key exists.
 // If key is found, replace key value and return 1
@@ -115,7 +116,7 @@ int btree_findkey(int* buffer, FILE* treeFile, mpz_t key, mpz_t ret);
  * @brief Add a value to the DB in the specified filedesc, prev will return the previous value if it exists, otherwise will become NULL
  * @return 1 if key replace, 0 if key added, -1 if key can't be added
  */
-int btree_addvalue(int* buffer, FILE* treeFile, mpz_t key, mpz_t val, mpz_t prev);
+int btree_addvalue(int* buffer, FILE* treeFile, uint8_t key[64], uint8_t val[64], uint8_t prev[64]);
 
 // Load root into buffer, traverse tree until either key is found or no key exists.
 // If key is found, remove and merge as necessary, return 0.
@@ -125,4 +126,16 @@ int btree_addvalue(int* buffer, FILE* treeFile, mpz_t key, mpz_t val, mpz_t prev
  * @return
  */
 int btree_removevalue(int* buffer, FILE* treeFile, char val[64]);
+
+/**
+ * @brief Compare arrays
+ * @return 1 if key1 is greater than key2, 0 if keys are equal, -1 if key1 is less than key2
+ */
+int btree_keycmp(uint8_t key1[64], uint8_t key2[64]);
+
+/**
+ * @brief Convert an array of 4 bytes to a 64 bit unsigned integer big endian.
+ * @return the 64 bit pointer integer.
+ */
+uint64_t btree_pointertoint(uint8_t pointer[4]);
 
