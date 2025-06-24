@@ -134,6 +134,18 @@ int btree_removevalue(int* buffer, FILE* treeFile, char val[64]);
 int btree_keycmp(uint8_t key1[64], uint8_t key2[64]);
 
 /**
+ * @brief Finds the earliest free index to write a page to
+ * @return The integer index of the writable page
+ */
+long btree_findfreepage(FILE* treeFile);
+
+/**
+ * @brief Initializes the root for a new database in the given file.
+ * @return 1 if successful, otherwise 0.
+ */
+int btree_createNewDB(FILE* treeFile);
+
+/**
  * @brief Convert an array of 4 bytes to a 64 bit unsigned integer big endian.
  * @return the 64 bit pointer integer.
  */
