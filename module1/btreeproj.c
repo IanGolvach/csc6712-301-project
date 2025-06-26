@@ -82,6 +82,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 /*
  * Useful Documentation
@@ -102,13 +103,18 @@ long btree_findfreepage(FILE* treeFile){
     uint8_t pageBuffer[bt1_pagesize];
     bool pageFree = false;
     int idx = 0; // page indices start at 1.
-    while(!pageFree){
+    while(!pageFree && !feof(treeFile)){
         idx++;
         fread(pageBuffer, sizeof(pageBuffer[0]), bt1_pagesize, treeFile);
         // check if free
         if(true){
             pageFree = true;
         }
+    }
+    if(!pageFree && feof(treeFile)){
+        // Reached EOF, write a free page before going EOF
+        memset(pageBuffer, 0, 4096);
+        fwrite(pageBuffer, sizeof(pageBuffer[0]), 4096, treeFile);
     }
     return idx;
 }
