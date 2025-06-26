@@ -103,12 +103,15 @@ long btree_findfreepage(FILE* treeFile){
     uint8_t pageBuffer[bt1_pagesize];
     bool pageFree = false;
     int idx = 0; // page indices start at 1.
+    fseek(treeFile, bt1_pagesize, SEEK_SET);
+    int idx = 1; // page indices start at 1, we won' be checking the root.
     while(!pageFree && !feof(treeFile)){
         idx++;
         fread(pageBuffer, sizeof(pageBuffer[0]), bt1_pagesize, treeFile);
         // check if free
-        if(true){
-            pageFree = true;
+        pageFree = true;
+        for(int i = 0; i < bt1_headersize; i++){
+            pageFree = pageFree && pageBuffer[i] == 0;
         }
     }
     if(!pageFree && feof(treeFile)){
