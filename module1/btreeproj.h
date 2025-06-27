@@ -149,5 +149,5 @@ int btree_createNewDB(FILE* treeFile);
  * @brief Convert an array of 4 bytes to a 64 bit unsigned integer big endian.
  * @return the 64 bit pointer integer.
  */
-uint64_t btree_pointertoint(uint8_t pointer[4]);
+uint32_t btree_pointertoint(uint8_t pointer[4]);
 
