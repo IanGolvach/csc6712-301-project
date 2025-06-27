@@ -78,27 +78,27 @@
  * */
 #include <stdint.h>
 
-const int bt1_pagesize = 4096;
+#define bt1_pagesize 4096
 
-const int bt1_cellsize = 132;
+#define bt1_cellsize 132
 
-const int bt1_headersize = 4;
+#define bt1_headersize 4
 
-const int bt1_cellsperpage = 30;
+#define bt1_cellsperpage 30
 
-const int bt1_cellkeyoffset = 0;
+#define bt1_cellkeyoffset 0
 
-const int bt1_cellvalueoffeset = 64;
+#define bt1_cellvalueoffeset 64
 
-const int bt1_cellpointeroffset = 128;
+#define bt1_cellpointeroffset 128
 
-const int bt1_tailsize = 4;
+#define bt1_tailsize 4
 
-const int bt1_branching_factor = 16; // No more than 2d cells per page, d is branch_factor - 1
+#define bt1_branching_factor 16 // No more than 2d cells per page, d is branch_factor - 1
 
-const int bt1_keysize = 64;
+#define bt1_keysize 64
 
-const int bt1_valsize = 64;
+#define bt1_valsize 64
 
 // Load root into buffer, traverse tree until either key is found or no key exists.
 // Return NULL if no such key exists, otherwise return pointer to value.
