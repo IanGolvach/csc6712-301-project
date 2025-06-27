@@ -97,6 +97,38 @@
 
 
 
+uint8_t btree_midInsert(uint8_t pageBuffer[b1_pagesize], uint8_t insKey[64], uint8_t insVal[64], uint8_t insPointer[4], int index){
+    uint8_t switchKey[64], switchVal[64], switchPointer[4], nextKey[64], nextVal[64], nextPointer[4];
+    for(int i = 0; i < bt1_keysize; i++){
+        switchKey[i] = insKey[i];
+        switchVal[i] = insVal[i];
+    }
+    for(int i = 0; i < 4; i++){
+        switchPointer[i] = insPointer[i];
+    }
+    for(int j = index; j < bt1_cellsperpage; j++){
+        for(int i = 0; i < bt1_keysize; i++){ // Switch out the key
+            nextKey[i] = pageBuffer[bt1_headersize+(bt1_cellsize*i)+i];
+            pageBuffer[bt1_headersize+(bt1_cellsize*i)+i] = switchKey[i];
+        }
+        for(int i = 0; i < bt1_valsize; i++){ // Switch out the val
+            nextVal[i] = pageBuffer[bt1_headersize+bt1_keysize+(bt1_cellsize*i)+i];
+            pageBuffer[bt1_headersize+bt1_keysize+(bt1_cellsize*i)+i] = switchVal[i];
+        }
+        for(int i = 0; i < 4; i++){ // Switch out the pointer
+            nextPointer[i] = pageBuffer[bt1_headersize+bt1_keysize+bt1_valsize+(bt1_cellsize*i)+i];
+            pageBuffer[bt1_headersize+bt1_keysize+bt1_valsize+(bt1_cellsize*i)+i] = switchPointer[i];
+        }
+        // Load the switches with the next vals.
+        for(int i = 0; i < bt1_keysize; i++){
+            switchKey[i] = nextKey[i];
+            switchVal[i] = nextVal[i];
+        }
+        for(int i = 0; i < 4; i++){
+            switchPointer[i] = nextPointer[i];
+        }
+    }
+}
 /**
  * @brief Finds the earliest free index to write a page to
  * @return The integer index of the writable page
@@ -466,36 +498,9 @@ int btree_addvalue(int* buffer, FILE* treeFile, uint8_t key[64], uint8_t val[64]
         }
         if(!splitNeeded){
             // split still not needed, add key and shift all values right.
-            uint8_t nextKey[64], nextVal[64], nextPointer[4], switchKey[64], switchVal[64], switchPointer[4];
-            for(int i = 0; i < bt1_keysize; i++){
-                switchKey[i] = key[i];
-                switchVal[i] = val[i];
-            }
-            for(int i = 0; i < 4; i++){
-                switchPointer[i] = 0;
-            }
-            for(int j = idx; j < bt1_cellsperpage; j++){
-                for(int i = 0; i < bt1_keysize; i++){ // Switch out the key
-                    nextKey[i] = pageBuffer[bt1_headersize+(bt1_cellsize*i)+i];
-                    pageBuffer[bt1_headersize+(bt1_cellsize*i)+i] = switchKey[i];
-                }
-                for(int i = 0; i < bt1_valsize; i++){ // Switch out the val
-                    nextVal[i] = pageBuffer[bt1_headersize+bt1_keysize+(bt1_cellsize*i)+i];
-                    pageBuffer[bt1_headersize+bt1_keysize+(bt1_cellsize*i)+i] = switchVal[i];
-                }
-                for(int i = 0; i < 4; i++){ // Switch out the pointer
-                    nextPointer[i] = pageBuffer[bt1_headersize+bt1_keysize+bt1_valsize+(bt1_cellsize*i)+i];
-                    pageBuffer[bt1_headersize+bt1_keysize+bt1_valsize+(bt1_cellsize*i)+i] = switchPointer[i];
-                }
-                // Load the switches with the next vals.
-                for(int i = 0; i < bt1_keysize; i++){
-                    switchKey[i] = nextKey[i];
-                    switchVal[i] = nextVal[i];
-                }
-                for(int i = 0; i < 4; i++){
-                    switchPointer[i] = nextPointer[i];
-                }
-            }
+            uint8_t emptyPointer[4];
+            memset(emptyPointer, 0, 4);
+            btree_midInsert(pageBuffer, key, val, emptyPointer, idx);
             fseek(treeFile, (pageIdx-1)*bt1_pagesize, SEEK_SET);// Reset file position to beginning of page
             fwrite(pageBuffer, sizeof(pageBuffer[0]), bt1_pagesize, treeFile); // Write to page
         } else {
@@ -517,82 +522,95 @@ int btree_addvalue(int* buffer, FILE* treeFile, uint8_t key[64], uint8_t val[64]
             int splitIdx = idx;
 
             uint8_t leftBuffer[bt1_pagesize], rightBuffer[bt1_pagesize];
-            freeIdx = btree_splitBufferAndInsert(pageBuffer, leftBuffer, rightBuffer, splitKey, splitVal, splitPointer, promKey, promVal, newPointer, splitIdx, treeFile);
-            /* Now that the left and right buffers have been settled, we must do some simple things.
-             * 
-             * Ensure the key, value, and needed indices are in choice variables
-             * promKey
-             * promVal
-             * promPrev
-             * promNext
-             * 
-             * We must choose whether to make the new page the PREV or NEXT index.
-             * -> based on the book, the 'right' page retains the old index number and the 'left' is the new one.
-             * The other index, key, and value will be specified by the methods previous that set the buffers
-             * The new page must be found as empty (fully null with no parent pointer) and then saved to.
-             * 
-             * With some work, the above method can be made into a loop to continue this sequence until root is eventually found.
-             * 
-             * Otherwise, a secondary (and much heavier) version for non-leafs can be written below.
-             */
-            // Figure out who the lucky parent of this split is.
-            parentIdx = btree_pointertoint(&pageBuffer);
-            splitNeeded = btree_checkPageNeedsSplit(parentIdx, treeFile);
-            if(!splitNeeded){
-                // Write the pages, determine pointers, and insert into the above page.
-                fseek(treeFile, bt1_pagesize*(pageIdx-1), SEEK_SET);
-                fwrite(rightBuffer, sizeof(rightBuffer[0]), bt1_pagesize, treeFile);
-                fseek(treeFile,bt1_pagesize*(freeIdx-1), SEEK_SET);
-                fwrite(leftBuffer, sizeof(leftBuffer[0]), bt1_pagesize, treeFile);
-                fseek(treeFile, bt1_pagesize*(parentIdx-1), SEEK_SET);
-                fread(pageBuffer, sizeof(pageBuffer[0]), bt1_pagesize, treeFile);
-                // Left buffer needs to have its children rectified.
-                btree_rectifyChildrenParents(freeIdx, treeFile);
-                // Find which cell has the before pointer equal to the current page's index
-                int cellIdx = 0;
-                while(btree_pointertoint(&pageBuffer[bt1_headersize+(cellIdx*bt1_cellsize)+bt1_cellpointeroffset]) != pageIdx){
-                    // check cells.
-                    cellIdx++;
-                    if(cellIdx > bt1_cellsperpage){
-                        printf("Page at index %u has no pointer in parent!", pageIdx);
-                        return -1;
+            while(splitNeeded){
+                freeIdx = btree_splitBufferAndInsert(pageBuffer, leftBuffer, rightBuffer, splitKey, splitVal, splitPointer, promKey, promVal, newPointer, splitIdx, treeFile);
+                if(pageIdx != 1){ // Not a ROOT, split normally.
+                    /* Now that the left and right buffers have been settled, we must do some simple things.
+                    * 
+                    * Ensure the key, value, and needed indices are in choice variables
+                    * promKey
+                    * promVal
+                    * promPrev
+                    * promNext
+                    * 
+                    * We must choose whether to make the new page the PREV or NEXT index.
+                    * -> based on the book, the 'right' page retains the old index number and the 'left' is the new one.
+                    * The other index, key, and value will be specified by the methods previous that set the buffers
+                    * The new page must be found as empty (fully null with no parent pointer) and then saved to.
+                    * 
+                    * With some work, the above method can be made into a loop to continue this sequence until root is eventually found.
+                    * 
+                    * Otherwise, a secondary (and much heavier) version for non-leafs can be written below.
+                    */
+                    // Figure out who the lucky parent of this split is.
+                    parentIdx = btree_pointertoint(&pageBuffer);
+                    splitNeeded = btree_checkPageNeedsSplit(parentIdx, treeFile);
+                    // Write the pages, determine pointers, and insert into the above page.
+                    fseek(treeFile, bt1_pagesize*(pageIdx-1), SEEK_SET);
+                    fwrite(rightBuffer, sizeof(rightBuffer[0]), bt1_pagesize, treeFile);
+                    fseek(treeFile,bt1_pagesize*(freeIdx-1), SEEK_SET);
+                    fwrite(leftBuffer, sizeof(leftBuffer[0]), bt1_pagesize, treeFile);
+                    btree_rectifyChildrenParents(freeIdx, treeFile); // Left buffer needs to have its children rectified.
+                    fseek(treeFile, bt1_pagesize*(parentIdx-1), SEEK_SET);
+                    fread(pageBuffer, sizeof(pageBuffer[0]), bt1_pagesize, treeFile);
+                    // Find which cell has the before pointer equal to the current page's index
+                    // TODO: Is it possible the split value may end up on the outside?
+                    int cellIdx = 0;
+                    while(btree_pointertoint(&pageBuffer[bt1_headersize+(cellIdx*bt1_cellsize)+bt1_cellpointeroffset]) != pageIdx){
+                        // check cells.
+                        cellIdx++;
+                        if(cellIdx > bt1_cellsperpage){
+                            printf("Page at index %u has no pointer in parent!", pageIdx);
+                            return -1;
+                        }
                     }
-                }
-                // repeat code from no-split insertion
-                uint8_t nextKey[64], nextVal[64], nextPointer[4], switchKey[64], switchVal[64], switchPointer[4];
-                for(int i = 0; i < bt1_keysize; i++){
-                    switchKey[i] = promKey[i];
-                    switchVal[i] = promVal[i];
-                }
-                for(int i = 0; i < 4; i++){
-                    switchPointer[i] = newPointer[i];
-                }
-                for(int j = cellIdx; j < bt1_cellsperpage; j++){
-                    for(int i = 0; i < bt1_keysize; i++){ // Switch out the key
-                        nextKey[i] = pageBuffer[bt1_headersize+(bt1_cellsize*i)+i];
-                        pageBuffer[bt1_headersize+(bt1_cellsize*i)+i] = switchKey[i];
+                    if(!splitNeeded){
+                        // repeat code from no-split insertion
+                        btree_midInsert(pageBuffer, promKey, promVal, newPointer, cellIdx);
+                        // Write new parent.
+                        fseek(treeFile, bt1_pagesize*(parentIdx-1), SEEK_SET);// Reset file position to beginning of page
+                        fwrite(pageBuffer, sizeof(pageBuffer[0]), bt1_pagesize, treeFile); // Write to page
+                        }
+                    else {
+                        // set the promoted values as the split values
+                        for(int i = 0; i < 64; i++){
+                            splitKey[i] = promKey[i];
+                            splitVal[i] = promVal[i];
+                        }
+                        for(int i = 0; i < 4; i++){
+                            splitPointer[i] = newPointer[i];
+                        }
+                        pageIdx = parentIdx;
+                        // Loop back to the beginning, perform the split procedure.
+                        // Check if current page is ROOT, special case.
+                        
                     }
-                    for(int i = 0; i < bt1_valsize; i++){ // Switch out the val
-                        nextVal[i] = pageBuffer[bt1_headersize+bt1_keysize+(bt1_cellsize*i)+i];
-                        pageBuffer[bt1_headersize+bt1_keysize+(bt1_cellsize*i)+i] = switchVal[i];
-                    }
-                    for(int i = 0; i < 4; i++){ // Switch out the pointer
-                        nextPointer[i] = pageBuffer[bt1_headersize+bt1_keysize+bt1_valsize+(bt1_cellsize*i)+i];
-                        pageBuffer[bt1_headersize+bt1_keysize+bt1_valsize+(bt1_cellsize*i)+i] = switchPointer[i];
-                    }
-                    // Load the switches with the next vals.
+                } else { // We are at the ROOT! Special split procedure.
+                    // Write the new page as normal, then find a NEW free page for the old page.
+                    // Write the ROOT as a new single entry node of the promoted key.
+                    // Make sure to go back and implement the possibility of full cell followed by empty cell with pointer
+                    fseek(treeFile,bt1_pagesize*(freeIdx-1), SEEK_SET);
+                    fwrite(leftBuffer, sizeof(leftBuffer[0]), bt1_pagesize, treeFile);
+                    uint32_t secondFreeIdx = btree_findfreepage(treeFile);
+                    uint8_t secondFreePointer[4];
+                    btree_inttopointer(secondFreeIdx, secondFreePointer);
+                    fseek(treeFile,bt1_pagesize*(secondFreeIdx-1), SEEK_SET);
+                    fwrite(leftBuffer, sizeof(leftBuffer[0]), bt1_pagesize, treeFile);
+                    // rectify both new nodes
+                    btree_rectifyChildrenParents(freeIdx, treeFile);
+                    btree_rectifyChildrenParents(secondFreeIdx, treeFile);
+                    //newPointer is the LEFT, secondFreePointer is the RIGHT
+                    memset(pageBuffer, 0, bt1_pagesize);
                     for(int i = 0; i < bt1_keysize; i++){
-                        switchKey[i] = nextKey[i];
-                        switchVal[i] = nextVal[i];
+                        pageBuffer[bt1_headersize+i] = promKey[i];
+                        pageBuffer[bt1_headersize+i+bt1_cellvalueoffset] = promVal[i];
                     }
-                    for(int i = 0; i < 4; i++){
-                        switchPointer[i] = nextPointer[i];
+                    for(int = 0; i< 4; i++){
+                        pageBuffer[bt1_headersize+bt1_cellpointeroffset+i] = newPointer[i];
+                        pageBuffer[bt1_headersize+bt1_cellpointeroffset+i+bt1_cellsize] = newPointer[i];
                     }
                 }
-                // Write new parent.
-                fseek(treeFile, bt1_pagesize*(parentIdx-1), SEEK_SET);// Reset file position to beginning of page
-                fwrite(pageBuffer, sizeof(pageBuffer[0]), bt1_pagesize, treeFile); // Write to page
-                }
+            }
         }
     }
         
