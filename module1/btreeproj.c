@@ -95,6 +95,8 @@
  * fsync can be used to force writes back to disk. 
  */
 
+
+
 /**
  * @brief Finds the earliest free index to write a page to
  * @return The integer index of the writable page
@@ -201,6 +203,139 @@ void btree_rectifyChildrenParents(uint32_t parentIdx, FILE* treeFile){
     }
 }
 
+uint32_t btree_splitBufferAndInsert(uint8_t pageBuffer[bt1_pagesize], uint8_t leftBuffer[bt1_pagesize], uint8_t rightBuffer[bt1_pagesize], uint8_t insKey[64], uint8_t insVal[64], uint8_t insPointer[4], uint8_t promKey[64], uint8_t promVal[64], uint8_t promPointer[64], int insIdx, FILE* treeFile){
+    if(insIdx > (bt1_cellsperpage/2)){
+        // new value goes on the right
+        for(int i = 0; i < bt1_headersize; i++){
+            leftBuffer[i] = pageBuffer[i];
+            rightBuffer[i] = pageBuffer[i];
+        }
+        for(int j = 0; j <bt1_cellsperpage/2; j++){ // fill in easy buffer parts.
+            for(int i = 0; i < bt1_cellsize; i++){
+                leftBuffer[bt1_headersize+(bt1_cellsize*j)+i] = pageBuffer[bt1_headersize+(bt1_cellsize*j)+i];
+            }
+        }
+        for(int j = (bt1_cellsperpage/2)+1; j < idx; j++){ // fill in easy buffer parts.
+            for(int i = 0; i < bt1_cellsize; i++){
+                rightBuffer[bt1_headersize+(bt1_cellsize*(j-((bt1_cellsperpage/2)+1)))+i] = pageBuffer[bt1_headersize+(bt1_cellsize*j)+i];
+            }
+        }
+        // Fill in rest of the right buffer moving over each piece.
+        uint8_t nextKey[64], nextVal[64], nextPointer[4], switchKey[64], switchVal[64], switchPointer[4];
+        for(int i = 0; i < bt1_keysize; i++){
+            switchKey[i] = insKey[i];
+            switchVal[i] = insVal[i];
+        }
+        for(int i = 0; i < 4; i++){
+            switchPointer[i] = insPointer[i];
+        }
+        for(int j = idx; j < bt1_cellsperpage; j++){
+            for(int i = 0; i < bt1_keysize; i++){ // Switch out the key
+                nextKey[i] = pageBuffer[bt1_headersize+(bt1_cellsize*i)+i];
+                rightBuffer[bt1_headersize+(bt1_cellsize*(j-((bt1_cellsperpage/2)+1)))+i] = switchKey[i];
+            }
+            for(int i = 0; i < bt1_valsize; i++){ // Switch out the val
+                nextVal[i] = pageBuffer[bt1_headersize+bt1_keysize+(bt1_cellsize*i)+i];
+                rightBuffer[bt1_headersize+bt1_keysize+(bt1_cellsize*(j-((bt1_cellsperpage/2)+1)))+i] = switchVal[i];
+            }
+            for(int i = 0; i < 4; i++){ // Switch out the pointer
+                nextPointer[i] = pageBuffer[bt1_headersize+bt1_keysize+bt1_valsize+(bt1_cellsize*i)+i];
+                rightBuffer[bt1_headersize+bt1_keysize+bt1_valsize+(bt1_cellsize*(j-((bt1_cellsperpage/2)+1)))+i] = switchPointer[i];
+            }
+            // Load the switches with the next vals.
+            for(int i = 0; i < bt1_keysize; i++){
+                switchKey[i] = nextKey[i];
+                switchVal[i] = nextVal[i];
+            }
+            for(int i = 0; i < 4; i++){
+                switchPointer[i] = nextPointer[i];
+            }
+        }
+        // put the value at idx 15 a layer up.
+        for(int i = 0; i < bt1_keysize){
+            promKey[i] = pageBuffer[bt1_headersize+(bt1_cellsize*15)+i];
+            promVal[i] = pageBuffer[bt1_headersize+(bt1_cellsize*15)+bt1_keysize+i];
+        }
+    } else if (insIdx == (bt1_cellsperpage/2)){
+        // new value is the centerpiece
+        for(int i = 0; i < bt1_headersize; i++){
+            leftBuffer[i] = pageBuffer[i];
+            rightBuffer[i] = pageBuffer[i];
+        }
+        for(int j = 0; j <bt1_cellsperpage/2; j++){ // fill in easy buffer parts.
+            for(int i = 0; i < bt1_cellsize; i++){
+                leftBuffer[bt1_headersize+(bt1_cellsize*j)+i] = pageBuffer[bt1_headersize+(bt1_cellsize*j)+i];
+            }
+        }
+        for(int j = (bt1_cellsperpage/2)+1; j < bt1_cellsperpage; j++){ // fill in easy buffer parts.
+            for(int i = 0; i < bt1_cellsize; i++){
+                rightBuffer[bt1_headersize+(bt1_cellsize*(j-((bt1_cellsperpage/2)+1)))+i] = pageBuffer[bt1_headersize+(bt1_cellsize*j)+i];
+            }
+        }
+        // Set the prev and next pointer values for the centerpiece correctly.
+        for(int i = 0; i < bt1_keysize){
+            promKey[i] = insKey[i];
+            promVal[i] = insVal[i];
+        }
+    }
+    else {
+        // new value goes on the left
+        for(int i = 0; i < bt1_headersize; i++){
+            leftBuffer[i] = pageBuffer[i];
+            rightBuffer[i] = pageBuffer[i];
+        }
+        for(int j = 0; j < insIdx; j++){ // fill in easy buffer parts.
+            for(int i = 0; i < bt1_cellsize; i++){
+                leftBuffer[bt1_headersize+(bt1_cellsize*j)+i] = pageBuffer[bt1_headersize+(bt1_cellsize*j)+i];
+            }
+        }
+        // Fill in rest of the left buffer moving over each piece.
+        uint8_t nextKey[64], nextVal[64], nextPointer[4], switchKey[64], switchVal[64], switchPointer[4];
+        for(int i = 0; i < bt1_keysize; i++){
+            switchKey[i] = insKey[i];
+            switchVal[i] = insVal[i];
+        }
+        for(int i = 0; i < 4; i++){
+            switchPointer[i] = insPointer[i];
+        }
+        for(int j = idx; j < bt1_cellsperpage/2; j++){
+            for(int i = 0; i < bt1_keysize; i++){ // Switch out the key
+                nextKey[i] = pageBuffer[bt1_headersize+(bt1_cellsize*i)+i];
+                leftBuffer[bt1_headersize+(bt1_cellsize*i)+i] = switchKey[i];
+            }
+            for(int i = 0; i < bt1_valsize; i++){ // Switch out the val
+                nextVal[i] = pageBuffer[bt1_headersize+bt1_keysize+(bt1_cellsize*i)+i];
+                leftBuffer[bt1_headersize+bt1_keysize+(bt1_cellsize*i)+i] = switchVal[i];
+            }
+            for(int i = 0; i < 4; i++){ // Switch out the pointer
+                nextPointer[i] = pageBuffer[bt1_headersize+bt1_keysize+bt1_valsize+(bt1_cellsize*i)+i];
+                leftBuffer[bt1_headersize+bt1_keysize+bt1_valsize+(bt1_cellsize*i)+i] = switchPointer[i];
+            }
+            // Load the switches with the next vals.
+            for(int i = 0; i < bt1_keysize; i++){
+                switchKey[i] = nextKey[i];
+                switchVal[i] = nextVal[i];
+            }
+            for(int i = 0; i < 4; i++){
+                switchPointer[i] = nextPointer[i];
+            }
+        }
+        // Fill in the right buffer.
+        for(int j = (bt1_cellsperpage/2)+1; j < bt1_cellsperpage; j++){ // fill in easy buffer parts.
+            for(int i = 0; i < bt1_cellsize; i++){
+                rightBuffer[bt1_headersize+(bt1_cellsize*(j-((bt1_cellsperpage/2)+1)))+i] = pageBuffer[bt1_headersize+(bt1_cellsize*j)+i];
+            }
+        }
+        for(int i = 0; i < bt1_keysize){
+            promKey[i] = pageBuffer[bt1_headersize+(bt1_cellsize*15)+i];
+            promVal[i] = pageBuffer[bt1_headersize+(bt1_cellsize*15)+bt1_keysize+i];
+        }
+    }
+    // find the next page index and pass it back as the return value.
+    uint32_t ret = btree_findfreepage(treeFile);
+    btree_inttopointer(ret, promPointer);
+    return ret;
+}
 
 /**
  * @brief Finds the value of a given key if it exists in the btree, gives a pointer back to its temporary location in memory.
@@ -372,131 +507,17 @@ int btree_addvalue(int* buffer, FILE* treeFile, uint8_t key[64], uint8_t val[64]
             // idx 16-30 goes on the right
             
             // there may need to be a secondary version of this method for the case of splitting the root.
-            uint8_t splitKey[64], splitVal[64], splitPointer[4], promKey[64], promVal[64], promNext[4], promPrev[4];
+            uint8_t splitKey[64], splitVal[64], splitPointer[4], promKey[64], promVal[64], newPointer[4], promPrev[4];
             memset(splitPointer, 0, 4);
             for(int i = 0; i < 64; i++){
                 splitKey[i] = key[i];
                 splitVal[i] = val[i];
             }
             uint32_t parentIdx, freeIdx;
+            int splitIdx = idx;
 
             uint8_t leftBuffer[bt1_pagesize], rightBuffer[bt1_pagesize];
-            if(idx > (bt1_cellsperpage/2)){
-                // new value goes on the right
-                for(int i = 0; i < bt1_headersize; i++){
-                    leftBuffer[i] = pageBuffer[i];
-                    rightBuffer[i] = pageBuffer[i];
-                }
-                for(int j = 0; j <bt1_cellsperpage/2; j++){ // fill in easy buffer parts.
-                    for(int i = 0; i < bt1_cellsize; i++){
-                        leftBuffer[bt1_headersize+(bt1_cellsize*j)+i] = pageBuffer[bt1_headersize+(bt1_cellsize*j)+i];
-                    }
-                }
-                for(int j = (bt1_cellsperpage/2)+1; j < idx; j++){ // fill in easy buffer parts.
-                    for(int i = 0; i < bt1_cellsize; i++){
-                        rightBuffer[bt1_headersize+(bt1_cellsize*(j-((bt1_cellsperpage/2)+1)))+i] = pageBuffer[bt1_headersize+(bt1_cellsize*j)+i];
-                    }
-                }
-                // Fill in rest of the right buffer moving over each piece.
-                uint8_t nextKey[64], nextVal[64], nextPointer[4], switchKey[64], switchVal[64], switchPointer[4];
-                for(int i = 0; i < bt1_keysize; i++){
-                    switchKey[i] = splitKey[i];
-                    switchVal[i] = splitVal[i];
-                }
-                for(int i = 0; i < 4; i++){
-                    switchPointer[i] = 0;
-                }
-                for(int j = idx; j < bt1_cellsperpage; j++){
-                    for(int i = 0; i < bt1_keysize; i++){ // Switch out the key
-                        nextKey[i] = pageBuffer[bt1_headersize+(bt1_cellsize*i)+i];
-                        rightBuffer[bt1_headersize+(bt1_cellsize*(j-((bt1_cellsperpage/2)+1)))+i] = switchKey[i];
-                    }
-                    for(int i = 0; i < bt1_valsize; i++){ // Switch out the val
-                        nextVal[i] = pageBuffer[bt1_headersize+bt1_keysize+(bt1_cellsize*i)+i];
-                        rightBuffer[bt1_headersize+bt1_keysize+(bt1_cellsize*(j-((bt1_cellsperpage/2)+1)))+i] = switchVal[i];
-                    }
-                    for(int i = 0; i < 4; i++){ // Switch out the pointer
-                        nextPointer[i] = pageBuffer[bt1_headersize+bt1_keysize+bt1_valsize+(bt1_cellsize*i)+i];
-                        rightBuffer[bt1_headersize+bt1_keysize+bt1_valsize+(bt1_cellsize*(j-((bt1_cellsperpage/2)+1)))+i] = switchPointer[i];
-                    }
-                    // Load the switches with the next vals.
-                    for(int i = 0; i < bt1_keysize; i++){
-                        switchKey[i] = nextKey[i];
-                        switchVal[i] = nextVal[i];
-                    }
-                    for(int i = 0; i < 4; i++){
-                        switchPointer[i] = nextPointer[i];
-                    }
-                }
-                // put the value at idx 15 a layer up.
-
-            } else if (idx == (bt1_cellsperpage/2)){
-                // new value is the centerpiece
-                for(int i = 0; i < bt1_headersize; i++){
-                    leftBuffer[i] = pageBuffer[i];
-                    rightBuffer[i] = pageBuffer[i];
-                }
-                for(int j = 0; j <bt1_cellsperpage/2; j++){ // fill in easy buffer parts.
-                    for(int i = 0; i < bt1_cellsize; i++){
-                        leftBuffer[bt1_headersize+(bt1_cellsize*j)+i] = pageBuffer[bt1_headersize+(bt1_cellsize*j)+i];
-                    }
-                }
-                for(int j = (bt1_cellsperpage/2)+1; j < bt1_cellsperpage; j++){ // fill in easy buffer parts.
-                    for(int i = 0; i < bt1_cellsize; i++){
-                        rightBuffer[bt1_headersize+(bt1_cellsize*(j-((bt1_cellsperpage/2)+1)))+i] = pageBuffer[bt1_headersize+(bt1_cellsize*j)+i];
-                    }
-                }
-                // Set the prev and next pointer values for the centerpiece correctly.
-            } else {
-                // new value goes on the left
-                for(int i = 0; i < bt1_headersize; i++){
-                    leftBuffer[i] = pageBuffer[i];
-                    rightBuffer[i] = pageBuffer[i];
-                }
-                for(int j = 0; j < idx; j++){ // fill in easy buffer parts.
-                    for(int i = 0; i < bt1_cellsize; i++){
-                        leftBuffer[bt1_headersize+(bt1_cellsize*j)+i] = pageBuffer[bt1_headersize+(bt1_cellsize*j)+i];
-                    }
-                }
-                // Fill in rest of the left buffer moving over each piece.
-                uint8_t nextKey[64], nextVal[64], nextPointer[4], switchKey[64], switchVal[64], switchPointer[4];
-                for(int i = 0; i < bt1_keysize; i++){
-                    switchKey[i] = splitKey[i];
-                    switchVal[i] = splitVal[i];
-                }
-                for(int i = 0; i < 4; i++){
-                    switchPointer[i] = 0;
-                }
-                for(int j = idx; j < bt1_cellsperpage/2; j++){
-                    for(int i = 0; i < bt1_keysize; i++){ // Switch out the key
-                        nextKey[i] = pageBuffer[bt1_headersize+(bt1_cellsize*i)+i];
-                        leftBuffer[bt1_headersize+(bt1_cellsize*i)+i] = switchKey[i];
-                    }
-                    for(int i = 0; i < bt1_valsize; i++){ // Switch out the val
-                        nextVal[i] = pageBuffer[bt1_headersize+bt1_keysize+(bt1_cellsize*i)+i];
-                        leftBuffer[bt1_headersize+bt1_keysize+(bt1_cellsize*i)+i] = switchVal[i];
-                    }
-                    for(int i = 0; i < 4; i++){ // Switch out the pointer
-                        nextPointer[i] = pageBuffer[bt1_headersize+bt1_keysize+bt1_valsize+(bt1_cellsize*i)+i];
-                        leftBuffer[bt1_headersize+bt1_keysize+bt1_valsize+(bt1_cellsize*i)+i] = switchPointer[i];
-                    }
-                    // Load the switches with the next vals.
-                    for(int i = 0; i < bt1_keysize; i++){
-                        switchKey[i] = nextKey[i];
-                        switchVal[i] = nextVal[i];
-                    }
-                    for(int i = 0; i < 4; i++){
-                        switchPointer[i] = nextPointer[i];
-                    }
-                }
-                // Fill in the right buffer.
-                for(int j = (bt1_cellsperpage/2)+1; j < bt1_cellsperpage; j++){ // fill in easy buffer parts.
-                    for(int i = 0; i < bt1_cellsize; i++){
-                        rightBuffer[bt1_headersize+(bt1_cellsize*(j-((bt1_cellsperpage/2)+1)))+i] = pageBuffer[bt1_headersize+(bt1_cellsize*j)+i];
-                    }
-                }
-                // Add the former (now in the NEXT spot) key at idx 15 to the one above, reference split2.png
-            }
+            freeIdx = btree_splitBufferAndInsert(pageBuffer, leftBuffer, rightBuffer, splitKey, splitVal, splitPointer, promKey, promVal, newPointer, splitIdx, treeFile);
             /* Now that the left and right buffers have been settled, we must do some simple things.
              * 
              * Ensure the key, value, and needed indices are in choice variables
@@ -517,9 +538,6 @@ int btree_addvalue(int* buffer, FILE* treeFile, uint8_t key[64], uint8_t val[64]
             // Figure out who the lucky parent of this split is.
             parentIdx = btree_pointertoint(&pageBuffer);
             splitNeeded = btree_checkPageNeedsSplit(parentIdx, treeFile);
-            freeIdx = btree_findfreepage(treeFile);
-            uint8_t newPointer[4];
-            btree_inttopointer(freeIdx, newPointer);
             if(!splitNeeded){
                 // Write the pages, determine pointers, and insert into the above page.
                 fseek(treeFile, bt1_pagesize*(pageIdx-1), SEEK_SET);
