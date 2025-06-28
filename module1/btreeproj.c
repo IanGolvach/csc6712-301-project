@@ -85,6 +85,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 /*
  * Useful Documentation
@@ -168,7 +169,7 @@ uint32_t btree_findfreepage(FILE* treeFile){
         fread(pageBuffer, sizeof(pageBuffer[0]), bt1_pagesize, treeFile);
         // check if free
         pageFree = true;
-        for(int i = 0; i < bt1_headersize; i++){
+        for(int i = 0; i < bt1_pagesize; i++){
             pageFree = pageFree && pageBuffer[i] == 0;
         }
     }
@@ -252,6 +253,9 @@ void btree_rectifyChildrenParents(uint32_t parentIdx, FILE* treeFile){
     uint32_t childIdx;
     fseek(treeFile, bt1_pagesize*(parentIdx-1), SEEK_SET);
     fread(parentBuffer, sizeof(parentBuffer[0]), bt1_pagesize, treeFile);
+    if(bt1_debug){
+        printf("Read the childbuffer, time to check the cells...\n");
+    }
     for(int i = 0; i < bt1_cellsperpage; i++){
         childIdx = btree_pointertoint(&parentBuffer[bt1_headersize+(bt1_cellsize*i)+bt1_cellpointeroffset]);
         if(childIdx != 0){
@@ -484,6 +488,7 @@ int btree_findkey(FILE* treeFile, uint8_t key[64], uint8_t ret[64]){
  * @return 1 if key replace, 0 if key added, -1 if key can't be added
  */
 int btree_addvalue(FILE* treeFile, uint8_t key[64], uint8_t val[64], uint8_t prev[64]){
+
     if(bt1_debug){
         printf("Got to the start of ADDING\n");
     }
@@ -493,7 +498,13 @@ int btree_addvalue(FILE* treeFile, uint8_t key[64], uint8_t val[64], uint8_t pre
     bool keyExists;
     bool splitNeeded = false;
     // Load ROOT
-    rewind(treeFile);
+    if(bt1_debug){
+        printf("Time to seek! FP = %i\n", treeFile);
+    }
+    fseek(treeFile, 0, SEEK_SET);
+    if(bt1_debug){
+        printf("Time to read!\n");
+    }
     fread(pageBuffer, sizeof(pageBuffer[0]), bt1_pagesize, treeFile);
     // Search ROOT for key OR next child pointer
     uint8_t comp_key[64], emptyKey[64]; // Comparison key, may not be necessary
@@ -682,20 +693,33 @@ int btree_addvalue(FILE* treeFile, uint8_t key[64], uint8_t val[64], uint8_t pre
                         
                     }
                 } else { // We are at the ROOT! Special split procedure.
+                    if(bt1_debug){
+                        printf("Commencing root split procedure...\n");
+                    }
                     // Write the new page as normal, then find a NEW free page for the old page.
                     // Write the ROOT as a new single entry node of the promoted key.
                     // Make sure to go back and implement the possibility of full cell followed by empty cell with pointer
+                    if (bt1_debug){
+                        printf("Writing buffers... FP = %i\n", treeFile);
+                    }
                     fseek(treeFile,bt1_pagesize*(freeIdx-1), SEEK_SET);
                     fwrite(leftBuffer, sizeof(leftBuffer[0]), bt1_pagesize, treeFile);
+                    fflush(treeFile);
                     uint32_t secondFreeIdx = btree_findfreepage(treeFile);
                     uint8_t secondFreePointer[4];
                     btree_inttopointer(secondFreeIdx, secondFreePointer);
                     fseek(treeFile,bt1_pagesize*(secondFreeIdx-1), SEEK_SET);
                     fwrite(leftBuffer, sizeof(leftBuffer[0]), bt1_pagesize, treeFile);
                     // rectify both new nodes
+                    if(bt1_debug){
+                        printf("Rectifying Children of new pages %u and %u...\n", freeIdx, secondFreeIdx);
+                    }
                     btree_rectifyChildrenParents(freeIdx, treeFile);
                     btree_rectifyChildrenParents(secondFreeIdx, treeFile);
                     //newPointer is the LEFT, secondFreePointer is the RIGHT
+                    if(bt1_debug){
+                        printf("Creating new root... FP = %i\n", treeFile);
+                    }
                     memset(pageBuffer, 0, bt1_pagesize);
                     for(int i = 0; i < bt1_keysize; i++){
                         pageBuffer[bt1_headersize+i] = promKey[i];
@@ -705,13 +729,24 @@ int btree_addvalue(FILE* treeFile, uint8_t key[64], uint8_t val[64], uint8_t pre
                         pageBuffer[bt1_headersize+bt1_cellpointeroffset+i] = newPointer[i];
                         pageBuffer[bt1_headersize+bt1_cellpointeroffset+i+bt1_cellsize] = newPointer[i];
                     }
+                    if(bt1_debug){
+                        printf("Writing new root... FP = %i\n", treeFile);
+                    }
                     fseek(treeFile, 0, SEEK_SET);
                     fwrite(pageBuffer, sizeof(pageBuffer[0]), bt1_pagesize, treeFile);
+                    splitNeeded = false;
+                    if(bt1_debug){
+                        printf("Postwrite FP = %u\n", treeFile);
+                    }
                 }
             }
         }
     }
-    fflush(treeFile);
+    printf("Preflush fp = %u\n", treeFile);
+    int flushresult = fflush(treeFile);
+    if(bt1_debug){
+        printf("Flush result: %i, FP = %u\n",flushresult, treeFile);
+    }
     return 1;
     // Search ROOT for key OR next child pointer
 
@@ -753,6 +788,14 @@ int main(void){
     }
     if(isCorrect){
         printf("The prev value was returned correctly!\n");
+    }
+    srand(time(NULL));
+    for(int i = 0; i < 60; i++){
+        for(int j = 0; j < 64; j++){
+            addKey[j] = rand();
+            addVal[j] = rand();
+        }
+        printf("%u: Result of attempting to add a new key and val: %u\n", i, btree_addvalue(fp, addKey, addVal, addPrev));
     }
     fclose(fp);
 }
