@@ -83,6 +83,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 
 /*
  * Useful Documentation
@@ -97,7 +99,7 @@
 
 
 
-uint8_t btree_midInsert(uint8_t pageBuffer[b1_pagesize], uint8_t insKey[64], uint8_t insVal[64], uint8_t insPointer[4], int index){
+uint8_t btree_midInsert(uint8_t pageBuffer[bt1_pagesize], uint8_t insKey[64], uint8_t insVal[64], uint8_t insPointer[4], int index){
     uint8_t switchKey[64], switchVal[64], switchPointer[4], nextKey[64], nextVal[64], nextPointer[4];
     for(int i = 0; i < bt1_keysize; i++){
         switchKey[i] = insKey[i];
@@ -184,16 +186,22 @@ int btree_keycmp(uint8_t key1[64], uint8_t key2[64]){
     return 0;
 }
 
+/**
+ * @brief Convert an array of 4 bytes to a 64 bit unsigned integer big endian.
+ * @return the 64 bit pointer integer.
+ */
 uint32_t btree_pointertoint(uint8_t pointer[4]){
     return (pointer[0] * (16*16*16)) + (pointer[1] * (16*16)) + (pointer[2] * 16) + pointer[3];
 }
 
 void btree_inttopointer(uint32_t pageIndex, uint8_t dest[4]){
     // 0 is the 16^3, 1 is 16^2, 2 is 16^1, 3 is 16^0
-    dest[0] = pageIndex >> 48;
-    dest[1] = (pageIndex << 16) >> 48;
-    dest[2] = (pageIndex << 32) >> 48;
-    dest[3] = (pageIndex << 48) >> 48;
+    // 16 32 48 64
+    // 8  16 24 32
+    dest[0] = pageIndex >> 24;
+    dest[1] = (pageIndex << 8) >> 24;
+    dest[2] = (pageIndex << 16) >> 24;
+    dest[3] = (pageIndex << 24) >> 24;
 }
 
 /**
@@ -235,7 +243,7 @@ void btree_rectifyChildrenParents(uint32_t parentIdx, FILE* treeFile){
     }
 }
 
-uint32_t btree_splitBufferAndInsert(uint8_t pageBuffer[bt1_pagesize], uint8_t leftBuffer[bt1_pagesize], uint8_t rightBuffer[bt1_pagesize], uint8_t insKey[64], uint8_t insVal[64], uint8_t insPointer[4], uint8_t promKey[64], uint8_t promVal[64], uint8_t promPointer[64], int insIdx, FILE* treeFile){
+uint32_t btree_splitBufferAndInsert(uint8_t pageBuffer[bt1_pagesize], uint8_t leftBuffer[bt1_pagesize], uint8_t rightBuffer[bt1_pagesize], uint8_t insKey[64], uint8_t insVal[64], uint8_t insPointer[4], uint8_t promKey[64], uint8_t promVal[64], uint8_t promPointer[4], int insIdx, FILE* treeFile){
     if(insIdx > (bt1_cellsperpage/2)){
         // new value goes on the right
         for(int i = 0; i < bt1_headersize; i++){
@@ -247,7 +255,7 @@ uint32_t btree_splitBufferAndInsert(uint8_t pageBuffer[bt1_pagesize], uint8_t le
                 leftBuffer[bt1_headersize+(bt1_cellsize*j)+i] = pageBuffer[bt1_headersize+(bt1_cellsize*j)+i];
             }
         }
-        for(int j = (bt1_cellsperpage/2)+1; j < idx; j++){ // fill in easy buffer parts.
+        for(int j = (bt1_cellsperpage/2)+1; j < insIdx; j++){ // fill in easy buffer parts.
             for(int i = 0; i < bt1_cellsize; i++){
                 rightBuffer[bt1_headersize+(bt1_cellsize*(j-((bt1_cellsperpage/2)+1)))+i] = pageBuffer[bt1_headersize+(bt1_cellsize*j)+i];
             }
@@ -261,7 +269,7 @@ uint32_t btree_splitBufferAndInsert(uint8_t pageBuffer[bt1_pagesize], uint8_t le
         for(int i = 0; i < 4; i++){
             switchPointer[i] = insPointer[i];
         }
-        for(int j = idx; j < bt1_cellsperpage; j++){
+        for(int j = insIdx; j < bt1_cellsperpage; j++){
             for(int i = 0; i < bt1_keysize; i++){ // Switch out the key
                 nextKey[i] = pageBuffer[bt1_headersize+(bt1_cellsize*i)+i];
                 rightBuffer[bt1_headersize+(bt1_cellsize*(j-((bt1_cellsperpage/2)+1)))+i] = switchKey[i];
@@ -284,7 +292,7 @@ uint32_t btree_splitBufferAndInsert(uint8_t pageBuffer[bt1_pagesize], uint8_t le
             }
         }
         // put the value at idx 15 a layer up.
-        for(int i = 0; i < bt1_keysize){
+        for(int i = 0; i < bt1_keysize; i++){
             promKey[i] = pageBuffer[bt1_headersize+(bt1_cellsize*15)+i];
             promVal[i] = pageBuffer[bt1_headersize+(bt1_cellsize*15)+bt1_keysize+i];
         }
@@ -305,7 +313,7 @@ uint32_t btree_splitBufferAndInsert(uint8_t pageBuffer[bt1_pagesize], uint8_t le
             }
         }
         // Set the prev and next pointer values for the centerpiece correctly.
-        for(int i = 0; i < bt1_keysize){
+        for(int i = 0; i < bt1_keysize; i++){
             promKey[i] = insKey[i];
             promVal[i] = insVal[i];
         }
@@ -330,7 +338,7 @@ uint32_t btree_splitBufferAndInsert(uint8_t pageBuffer[bt1_pagesize], uint8_t le
         for(int i = 0; i < 4; i++){
             switchPointer[i] = insPointer[i];
         }
-        for(int j = idx; j < bt1_cellsperpage/2; j++){
+        for(int j = insIdx; j < bt1_cellsperpage/2; j++){
             for(int i = 0; i < bt1_keysize; i++){ // Switch out the key
                 nextKey[i] = pageBuffer[bt1_headersize+(bt1_cellsize*i)+i];
                 leftBuffer[bt1_headersize+(bt1_cellsize*i)+i] = switchKey[i];
@@ -358,7 +366,7 @@ uint32_t btree_splitBufferAndInsert(uint8_t pageBuffer[bt1_pagesize], uint8_t le
                 rightBuffer[bt1_headersize+(bt1_cellsize*(j-((bt1_cellsperpage/2)+1)))+i] = pageBuffer[bt1_headersize+(bt1_cellsize*j)+i];
             }
         }
-        for(int i = 0; i < bt1_keysize){
+        for(int i = 0; i < bt1_keysize; i++){
             promKey[i] = pageBuffer[bt1_headersize+(bt1_cellsize*15)+i];
             promVal[i] = pageBuffer[bt1_headersize+(bt1_cellsize*15)+bt1_keysize+i];
         }
@@ -500,7 +508,7 @@ int btree_addvalue(int* buffer, FILE* treeFile, uint8_t key[64], uint8_t val[64]
             // split still not needed, add key and shift all values right.
             uint8_t emptyPointer[4];
             memset(emptyPointer, 0, 4);
-            btree_midInsert(pageBuffer, key, val, emptyPointer, idx);
+            btree_midInsert(pageBuffer, key, val, emptyPointer, idx); // formal error
             fseek(treeFile, (pageIdx-1)*bt1_pagesize, SEEK_SET);// Reset file position to beginning of page
             fwrite(pageBuffer, sizeof(pageBuffer[0]), bt1_pagesize, treeFile); // Write to page
         } else {
@@ -543,7 +551,7 @@ int btree_addvalue(int* buffer, FILE* treeFile, uint8_t key[64], uint8_t val[64]
                     * Otherwise, a secondary (and much heavier) version for non-leafs can be written below.
                     */
                     // Figure out who the lucky parent of this split is.
-                    parentIdx = btree_pointertoint(&pageBuffer);
+                    parentIdx = btree_pointertoint(pageBuffer);
                     splitNeeded = btree_checkPageNeedsSplit(parentIdx, treeFile);
                     // Write the pages, determine pointers, and insert into the above page.
                     fseek(treeFile, bt1_pagesize*(pageIdx-1), SEEK_SET);
@@ -566,7 +574,7 @@ int btree_addvalue(int* buffer, FILE* treeFile, uint8_t key[64], uint8_t val[64]
                     }
                     if(!splitNeeded){
                         // repeat code from no-split insertion
-                        btree_midInsert(pageBuffer, promKey, promVal, newPointer, cellIdx);
+                        btree_midInsert(pageBuffer, promKey, promVal, newPointer, cellIdx); // formal error
                         // Write new parent.
                         fseek(treeFile, bt1_pagesize*(parentIdx-1), SEEK_SET);// Reset file position to beginning of page
                         fwrite(pageBuffer, sizeof(pageBuffer[0]), bt1_pagesize, treeFile); // Write to page
@@ -603,9 +611,9 @@ int btree_addvalue(int* buffer, FILE* treeFile, uint8_t key[64], uint8_t val[64]
                     memset(pageBuffer, 0, bt1_pagesize);
                     for(int i = 0; i < bt1_keysize; i++){
                         pageBuffer[bt1_headersize+i] = promKey[i];
-                        pageBuffer[bt1_headersize+i+bt1_cellvalueoffset] = promVal[i];
+                        pageBuffer[bt1_headersize+i+bt1_cellvalueoffeset] = promVal[i];
                     }
-                    for(int = 0; i< 4; i++){
+                    for(int i = 0; i< 4; i++){
                         pageBuffer[bt1_headersize+bt1_cellpointeroffset+i] = newPointer[i];
                         pageBuffer[bt1_headersize+bt1_cellpointeroffset+i+bt1_cellsize] = newPointer[i];
                     }
@@ -626,5 +634,9 @@ int btree_addvalue(int* buffer, FILE* treeFile, uint8_t key[64], uint8_t val[64]
        // NONLEAF NODES: Split the leaf in half, first key of the secon d half is addeed to the parent, original after pointer becomes the before pointer of new node.
 
     // Else, if a key is found replace the value at the key and set prev to the value, return 1
+}
+
+int main(void){
+    printf("We running with it");
 }
 

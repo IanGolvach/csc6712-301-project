@@ -77,6 +77,7 @@
  *
  * */
 #include <stdint.h>
+#include <stdio.h>
 
 #define bt1_pagesize 4096
 
@@ -137,7 +138,7 @@ int btree_keycmp(uint8_t key1[64], uint8_t key2[64]);
  * @brief Finds the earliest free index to write a page to
  * @return The integer index of the writable page
  */
-long btree_findfreepage(FILE* treeFile);
+uint32_t btree_findfreepage(FILE* treeFile);
 
 /**
  * @brief Initializes the root for a new database in the given file.
