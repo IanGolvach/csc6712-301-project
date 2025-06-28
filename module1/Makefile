@@ -9,4 +9,4 @@ btreeproj: btreeproj.o
 btreeproj.o: btreeproj.c
 	$(CC) $(CFLAGS) -o btreeproj.o btreeproj.c
 
-clean: -f ttsh *.o
+clean: rm -f btreeproj *.o
