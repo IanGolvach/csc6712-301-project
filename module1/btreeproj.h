@@ -101,7 +101,7 @@
 
 #define bt1_valsize 64
 
-#define bt1_debug 0
+#define bt1_debug 1
 
 // Load root into buffer, traverse tree until either key is found or no key exists.
 // Return NULL if no such key exists, otherwise return pointer to value.

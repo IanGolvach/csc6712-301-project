@@ -1,0 +1,38 @@
+Current UStime = 1751161208728156
+100 Write Trial 1
+99/100: Result of attempting to add a new key and val: 1
+Microsecond Average Final = 4
+100 Write Trial 2
+99/100: Result of attempting to add a new key and val: 1
+Microsecond Average Final = 4
+100 Write Trial 3
+99/100: Result of attempting to add a new key and val: 1
+Microsecond Average Final = 5
+1000 Write Trial 1
+999/1000: Result of attempting to add a new key and val: 1
+Microsecond Average Final = 22
+1000 Write Trial 2
+999/1000: Result of attempting to add a new key and val: 1
+Microsecond Average Final = 22
+1000 Write Trial 3
+999/1000: Result of attempting to add a new key and val: 1
+Microsecond Average Final = 22
+10000 Write Trial 1
+9999/10000: Result of attempting to add a new key and val: 1
+Microsecond Average Final = 388
+10000 Write Trial 2
+9999/10000: Result of attempting to add a new key and val: 1
+Microsecond Average Final = 589
+10000 Write Trial 3
+9999/10000: Result of attempting to add a new key and val: 1
+Microsecond Average Final = 590
+100000 Write Trial 1
+99999/100000: Result of attempting to add a new key and val: 1
+Microsecond Average Final = 12772
+100000 Write Trial 2
+99999/100000: Result of attempting to add a new key and val: 1
+Microsecond Average Final = 12736
+100000 Write Trial 3
+99999/100000: Result of attempting to add a new key and val: 1
+Microsecond Average Final = 12611
+

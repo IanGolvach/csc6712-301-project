@@ -215,6 +215,10 @@ int btree_keycmp(uint8_t key1[64], uint8_t key2[64]){
  * @return the 64 bit pointer integer.
  */
 uint32_t btree_pointertoint(uint8_t pointer[4]){
+    for(int i = 0; i < 4; i++){
+        printf("%u ", pointer[i]);
+    }
+    printf("\n");
     return (pointer[0] * (16*16*16)) + (pointer[1] * (16*16)) + (pointer[2] * 16) + pointer[3];
 }
 
@@ -430,56 +434,134 @@ int btree_findkey(FILE* treeFile, uint8_t key[64], uint8_t ret[64]){
 
     uint8_t pageBuffer[bt1_pagesize];
     // Load ROOT
-    rewind(treeFile);
+    if(bt1_debug){
+        printf("Rewinding and loading root...\n");
+    }
+    //rewind(treeFile);
+    fseek(treeFile, 0, SEEK_SET);
+    if(bt1_debug){
+        printf("Loading root...\n");
+    }
     fread(pageBuffer, sizeof(pageBuffer[0]), bt1_pagesize, treeFile);
     // Search ROOT for key OR next child pointer
+    if(bt1_debug){
+        printf("Creating comp and empty key, filling emptykey.\n");
+    }
     uint8_t comp_key[64], emptyKey[64]; // Comparison key, may not be necessary
     memset(emptyKey, 0, 64);
+    if (bt1_debug){
+        printf("Beginning search\n");
+    }
     while(true){ // search until an end is found
         int idx;
         // set the CMP key to the first key
         //fseek(treeFile, bt1_headersize, SEEK_SET);
         int cmp_result = 1;
         int emptycmp_result = 1;
+        if(bt1_debug){
+            printf("Checking cells...\n");
+        }
+        printf("pageBuffer: ");
+        if(bt1_debug){
+            for(int i = 0; i < 4; i++){
+                printf("%u ", pageBuffer[i]);
+            }
+            printf("\n");
+            for(int i = 0; i < bt1_cellsperpage; i++){
+                for(int j = 0; j < bt1_keysize; j++){
+                    printf("%u ", pageBuffer[bt1_headersize+(bt1_cellsize*i)+j]);
+                }
+                printf("\n");
+                for(int j = 0; j < bt1_valsize; j++){
+                    printf("%u ", pageBuffer[bt1_headersize+bt1_keysize+(bt1_cellsize*i)+j]);
+                }
+                printf("\n");
+                for(int j = 0; j < 4; j++){
+                    printf("%u ", pageBuffer[bt1_headersize+bt1_keysize+bt1_valsize+(bt1_cellsize*i)+j]);
+                }
+                printf("\n");
+            }
+            for(int i = 0; i < 4; i++){
+                printf("%u ", pageBuffer[bt1_headersize+(bt1_cellsperpage*bt1_cellsize)+i]);
+            }
+            printf("\n");
+        }
         for(idx = 0; idx < bt1_cellsperpage; idx++){
             cmp_result = btree_keycmp(key, &pageBuffer[bt1_headersize+(bt1_cellsize*idx)]);
             emptycmp_result = btree_keycmp(emptyKey, &pageBuffer[bt1_headersize+(bt1_cellsize*idx)]);
+            if(bt1_debug){
+                printf("cmp=%i, emptycmp=%i\n",cmp_result, emptycmp_result);
+            }
             if(cmp_result <= 0 || emptycmp_result == 0){
                 break;
             }
         }
         if(emptycmp_result == 0){
             // check if there is a valid pointer.
+            if(bt1_debug){
+                printf("Found empty cell, checking for pointers.\n");
+            }
             uint32_t pageIdx = btree_pointertoint(&pageBuffer[bt1_headersize+bt1_cellpointeroffset+(bt1_cellsize*idx)]);
             if(pageIdx == 0){
+                if(bt1_debug){
+                    printf("No pointer, returning empty.\n");
+                }
                 return 0;
             } else {
-                fseek(treeFile, pageIdx*bt1_pagesize, SEEK_SET);
+                if(bt1_debug){
+                    printf("Pointer idx=%u found, going down a level.\n", pageIdx);
+                }
+                fseek(treeFile, (pageIdx-1)*bt1_pagesize, SEEK_SET);
                 fread(pageBuffer, sizeof(pageBuffer[0]), bt1_pagesize, treeFile);
             }
             // the current slot is empty.
         } else if(idx < bt1_cellsperpage){
             // Stopped mid move, check if less than or equal
+            if(bt1_debug){
+                printf("Stopped mid move...\n");
+            }
             if(cmp_result==0){
                 // It's equal
+                if(bt1_debug){
+                    printf("key equal, filling ret and returning...\n");
+                }
                 for(int i = 0; i < 64; i++){
                     ret[i] = pageBuffer[bt1_headersize+bt1_cellvalueoffeset+(bt1_cellsize*idx)+i];
                 }
                 return 1;
             } else {
                 // It's less than the key, read the next page of memory
+                if(bt1_debug){
+                    printf("It's less than, checking for pointers.\n");
+                    // return 0;
+                }
                 uint32_t pageIdx = btree_pointertoint(&pageBuffer[bt1_headersize+bt1_cellpointeroffset+(bt1_cellsize*idx)]);
                 if(pageIdx == 0){
+                    if(bt1_debug){
+                        printf("Nothing there, returning empty...\n");
+                    }
                     return 0; // Pointer is NULL, no key exists
+                }
+                if(bt1_debug){
+                    printf("Not empty, following down to idx=%u...\n", pageIdx);
                 }
                 fseek(treeFile, (pageIdx-1)*bt1_pagesize, SEEK_SET);
                 fread(pageBuffer, sizeof(pageBuffer[0]), bt1_pagesize, treeFile);
             }
         } else {
+            if(bt1_debug){
+                printf("Going down last pointer if exists...\n");
+            }
             // Key is greater than all on this page, take the last pointer.
             uint32_t pageIdx = btree_pointertoint(&pageBuffer[bt1_headersize+(bt1_cellsize*bt1_cellsperpage)]);
             if(pageIdx == 0){
+                if(bt1_debug){
+                    printf("No pointer, returning empty.\n");
+                }
                 return 0; // Pointer is NULL, no key exists
+            }
+            if(bt1_debug){
+                printf("Going down the last pointer of idx=%u\n", pageIdx);
             }
             fseek(treeFile, (pageIdx-1)*bt1_pagesize, SEEK_SET);
             fread(pageBuffer, sizeof(pageBuffer[0]), bt1_pagesize, treeFile);
@@ -855,45 +937,45 @@ int btree_addvalue(FILE* treeFile, uint8_t key[64], uint8_t val[64], uint8_t pre
     // Else, if a key is found replace the value at the key and set prev to the value, return 1
 }
 
-int main(void){
-    printf("We running with it!\n");
-    // Lets create a basic file to work with.
-    FILE* fp = fopen("test.tmp","w+");
-    printf("Result of attempting to create a new db: %u\n", btree_createNewDB(fp));
-    uint8_t addKey[64], addVal[64], addPrev[64], addRet[64];
-    memset(addKey, 1, 64);
-    memset(addVal, 2, 64);
-    memset(addPrev, 0, 64);
-    memset(addRet, 0, 64);
-    printf("Result of attempting to add a new key and val: %u\n", btree_addvalue(fp, addKey, addVal, addPrev));
-    printf("Result of attempting to find the new key: %u\n", btree_findkey(fp, addKey, addRet));
-    bool isCorrect = true;
-    for(int i = 0; i < 64; i++){
-        isCorrect = isCorrect && addVal[i] == addRet[i];
-    }
-    if(isCorrect){
-        printf("The value was returned correctly!\n");
-    }
-    printf("Result of attempting to readd a new key and val: %u\n", btree_addvalue(fp, addKey, addVal, addPrev));
-    isCorrect = true;
-    for(int i = 0; i < 64; i++){
-        isCorrect = isCorrect && addVal[i] == addPrev[i];
-    }
-    if(isCorrect){
-        printf("The prev value was returned correctly!\n");
-    }
-    //fclose(fp);
-    time_t startTime = time(NULL);
-    srand(time(NULL));
-    for(long long i = 0; i < 20000; i++){
-        //FILE* fp = fopen("test.tmp","r+");
-        for(int j = 0; j < 64; j++){
-            addKey[j] = rand();
-            addVal[j] = rand();
-        }
-        printf("%lli/20000: Result of attempting to add a new key and val: %u\r", i, btree_addvalue(fp, addKey, addVal, addPrev));
-    }
-    printf("\nInserting 20000 random values took %.f seconds.", startTime - time(NULL));
-    fclose(fp);
-}
+// int main(void){
+//     printf("We running with it!\n");
+//     // Lets create a basic file to work with.
+//     FILE* fp = fopen("test.tmp","w+");
+//     printf("Result of attempting to create a new db: %u\n", btree_createNewDB(fp));
+//     uint8_t addKey[64], addVal[64], addPrev[64], addRet[64];
+//     memset(addKey, 1, 64);
+//     memset(addVal, 2, 64);
+//     memset(addPrev, 0, 64);
+//     memset(addRet, 0, 64);
+//     printf("Result of attempting to add a new key and val: %u\n", btree_addvalue(fp, addKey, addVal, addPrev));
+//     printf("Result of attempting to find the new key: %u\n", btree_findkey(fp, addKey, addRet));
+//     bool isCorrect = true;
+//     for(int i = 0; i < 64; i++){
+//         isCorrect = isCorrect && addVal[i] == addRet[i];
+//     }
+//     if(isCorrect){
+//         printf("The value was returned correctly!\n");
+//     }
+//     printf("Result of attempting to readd a new key and val: %u\n", btree_addvalue(fp, addKey, addVal, addPrev));
+//     isCorrect = true;
+//     for(int i = 0; i < 64; i++){
+//         isCorrect = isCorrect && addVal[i] == addPrev[i];
+//     }
+//     if(isCorrect){
+//         printf("The prev value was returned correctly!\n");
+//     }
+//     //fclose(fp);
+//     time_t startTime = time(NULL);
+//     srand(time(NULL));
+//     for(long long i = 0; i < 20000; i++){
+//         //FILE* fp = fopen("test.tmp","r+");
+//         for(int j = 0; j < 64; j++){
+//             addKey[j] = rand();
+//             addVal[j] = rand();
+//         }
+//         printf("%lli/20000: Result of attempting to add a new key and val: %u\r", i, btree_addvalue(fp, addKey, addVal, addPrev));
+//     }
+//     printf("\nInserting 20000 random values took %.f seconds.", startTime - time(NULL));
+//     fclose(fp);
+// }
 
