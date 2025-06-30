@@ -12,6 +12,12 @@ btreebenchmarkreads: btreebenchmarkreads.o btreeproj.o
 btreeproj: btreeproj.o
 	$(CC) -o btreeproj btreeproj.o
 
+btreetests: btreetests.o btreeproj.o
+	$(CC) -o btreetests btreeproj.o btreetests.o
+
+btreetests.o: btreetests.c
+	$(CC) $(CFLAGS) -o btreetests.o btreetests.c
+
 btreebenchmarkwrites.o: btreebenchmarkwrites.c
 	$(CC) $(CFLAGS) -o btreebenchmarkwrites.o btreebenchmarkwrites.c
 

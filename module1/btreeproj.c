@@ -260,8 +260,13 @@ void btree_rectifyChildrenParents(uint32_t parentIdx, FILE* treeFile){
     if(bt1_debug){
         printf("Read the childbuffer, time to check the cells...\n");
     }
-    for(int i = 0; i < bt1_cellsperpage; i++){
-        childIdx = btree_pointertoint(&parentBuffer[bt1_headersize+(bt1_cellsize*i)+bt1_cellpointeroffset]);
+    for(int i = 0; i < bt1_cellsperpage+1; i++){
+        if(i < bt1_cellsperpage){
+            childIdx = btree_pointertoint(&parentBuffer[bt1_headersize+(bt1_cellsize*i)+bt1_cellpointeroffset]);
+        }
+        else{
+            childIdx = btree_pointertoint(&parentBuffer[bt1_headersize+(bt1_cellsize*i)]);
+        }
         if(childIdx != 0){
             fseek(treeFile, bt1_pagesize*(childIdx-1), SEEK_SET);
             fread(childBuffer, sizeof(childBuffer[0]), bt1_pagesize, treeFile);
@@ -277,7 +282,7 @@ void btree_rectifyChildrenParents(uint32_t parentIdx, FILE* treeFile){
 uint32_t btree_splitBufferAndInsert(uint8_t pageBuffer[bt1_pagesize], uint8_t leftBuffer[bt1_pagesize], uint8_t rightBuffer[bt1_pagesize], uint8_t insKey[64], uint8_t insVal[64], uint8_t insPointer[4], uint8_t promKey[64], uint8_t promVal[64], uint8_t promPointer[4], int insIdx, FILE* treeFile){
     if(insIdx > (bt1_cellsperpage/2)){
         if(bt1_debug){
-            printf("INSONRIGHT\n");
+            printf("INSONRIGHT IDX=%i\n",insIdx);
         }
         // new value goes on the right
         for(int i = 0; i < bt1_headersize; i++){
@@ -305,15 +310,15 @@ uint32_t btree_splitBufferAndInsert(uint8_t pageBuffer[bt1_pagesize], uint8_t le
         }
         for(int j = insIdx; j < bt1_cellsperpage; j++){
             for(int i = 0; i < bt1_keysize; i++){ // Switch out the key
-                nextKey[i] = pageBuffer[bt1_headersize+(bt1_cellsize*i)+i];
+                nextKey[i] = pageBuffer[bt1_headersize+(bt1_cellsize*j)+i];
                 rightBuffer[bt1_headersize+(bt1_cellsize*(j-((bt1_cellsperpage/2)+1)))+i] = switchKey[i];
             }
             for(int i = 0; i < bt1_valsize; i++){ // Switch out the val
-                nextVal[i] = pageBuffer[bt1_headersize+bt1_keysize+(bt1_cellsize*i)+i];
+                nextVal[i] = pageBuffer[bt1_headersize+bt1_keysize+(bt1_cellsize*j)+i];
                 rightBuffer[bt1_headersize+bt1_keysize+(bt1_cellsize*(j-((bt1_cellsperpage/2)+1)))+i] = switchVal[i];
             }
             for(int i = 0; i < 4; i++){ // Switch out the pointer
-                nextPointer[i] = pageBuffer[bt1_headersize+bt1_keysize+bt1_valsize+(bt1_cellsize*i)+i];
+                nextPointer[i] = pageBuffer[bt1_headersize+bt1_keysize+bt1_valsize+(bt1_cellsize*j)+i];
                 rightBuffer[bt1_headersize+bt1_keysize+bt1_valsize+(bt1_cellsize*(j-((bt1_cellsperpage/2)+1)))+i] = switchPointer[i];
             }
             // Load the switches with the next vals.
@@ -325,8 +330,19 @@ uint32_t btree_splitBufferAndInsert(uint8_t pageBuffer[bt1_pagesize], uint8_t le
                 switchPointer[i] = nextPointer[i];
             }
         }
+        for(int i = 0; i < bt1_keysize; i++){ // Switch out the key
+            rightBuffer[bt1_headersize+(bt1_cellsize*(bt1_cellsperpage-((bt1_cellsperpage/2)+1)))+i] = switchKey[i];
+        }
+        for(int i = 0; i < bt1_valsize; i++){ // Switch out the val
+            rightBuffer[bt1_headersize+bt1_keysize+(bt1_cellsize*(bt1_cellsperpage-((bt1_cellsperpage/2)+1)))+i] = switchVal[i];
+        }
+        for(int i = 0; i < 4; i++){ // Switch out the pointer]
+            rightBuffer[bt1_headersize+bt1_keysize+bt1_valsize+(bt1_cellsize*(bt1_cellsperpage-((bt1_cellsperpage/2)+1)))+i] = switchPointer[i];
+        }
         for(int i = 0; i < 4; i++){ // fill in possible pointer
-            rightBuffer[bt1_headersize+(bt1_cellsize*(bt1_cellsperpage-((bt1_cellsperpage/2)+1)))+i+bt1_cellpointeroffset] = switchPointer[i];
+            //rightBuffer[bt1_headersize+(bt1_cellsize*(bt1_cellsperpage-((bt1_cellsperpage/2)+1)))+i+bt1_cellpointeroffset] = switchPointer[i];
+            rightBuffer[bt1_headersize+(bt1_cellsize*(15))+i+bt1_cellpointeroffset] = pageBuffer[bt1_headersize+(bt1_cellsize*bt1_cellsperpage)+i];
+            leftBuffer[bt1_headersize+(bt1_cellsize*(15))+i+bt1_cellpointeroffset] = pageBuffer[bt1_headersize+(bt1_cellsize*15)+bt1_keysize+i+bt1_valsize];
         }
         // put the value at idx 15 a layer up.
         for(int i = 0; i < bt1_keysize; i++){
@@ -633,6 +649,7 @@ int btree_addvalue(FILE* treeFile, uint8_t key[64], uint8_t val[64], uint8_t pre
             } else {
                 fseek(treeFile, (pageIdxtmp-1)*bt1_pagesize, SEEK_SET);
                 fread(pageBuffer, sizeof(pageBuffer[0]), bt1_pagesize, treeFile);
+                pageIdx = pageIdxtmp;
             }
             // the current slot is empty.
         } else if(idx < bt1_cellsperpage){
@@ -652,8 +669,9 @@ int btree_addvalue(FILE* treeFile, uint8_t key[64], uint8_t val[64], uint8_t pre
                     stopLooking = true;
                     keyExists = false; // Pointer is NULL, no key exists
                 } else {
-                    fseek(treeFile, pageIdxtmp*bt1_pagesize, SEEK_SET);
+                    fseek(treeFile, (pageIdxtmp-1)*bt1_pagesize, SEEK_SET);
                     fread(pageBuffer, sizeof(pageBuffer[0]), bt1_pagesize, treeFile);
+                    pageIdx = pageIdxtmp;
                 }
             }
         } else {
@@ -664,8 +682,9 @@ int btree_addvalue(FILE* treeFile, uint8_t key[64], uint8_t val[64], uint8_t pre
                 keyExists = false; // Pointer is NULL, no key exists
                 splitNeeded = true; // Keys are full, must split.
             } else {
-                fseek(treeFile, pageIdxtmp*bt1_pagesize, SEEK_SET);
+                fseek(treeFile, (pageIdxtmp-1)*bt1_pagesize, SEEK_SET);
                 fread(pageBuffer, sizeof(pageBuffer[0]), bt1_pagesize, treeFile);
+                pageIdx = pageIdxtmp;
             }
         }
     }
@@ -724,7 +743,19 @@ int btree_addvalue(FILE* treeFile, uint8_t key[64], uint8_t val[64], uint8_t pre
             memset(leftBuffer, 0, bt1_pagesize);
             memset(rightBuffer, 0, bt1_pagesize);
             while(splitNeeded){
+                if(bt1_debug){
+                    for(int i = 0; i < 4; i++){
+                        printf("NewPointer[%i]=%u\n",i,newPointer[i]);
+                        printf("splitPointer[%i]=%u\n",i,splitPointer[i]);
+                    }
+                }
                 freeIdx = btree_splitBufferAndInsert(pageBuffer, leftBuffer, rightBuffer, splitKey, splitVal, splitPointer, promKey, promVal, newPointer, splitIdx, treeFile);
+                if(bt1_debug){
+                    for(int i = 0; i < 4; i++){
+                        printf("NewPointer[%i]=%u\n",i,newPointer[i]);
+                        printf("splitPointer[%i]=%u\n",i,splitPointer[i]);
+                    }
+                }
                 if(pageIdx != 1){ // Not a ROOT, split normally.
                     /* Now that the left and right buffers have been settled, we must do some simple things.
                     * 
@@ -756,6 +787,78 @@ int btree_addvalue(FILE* treeFile, uint8_t key[64], uint8_t val[64], uint8_t pre
                     fread(pageBuffer, sizeof(pageBuffer[0]), bt1_pagesize, treeFile);
                     // Find which cell has the before pointer equal to the current page's index
                     // TODO: Is it possible the split value may end up on the outside?
+                    if(bt1_debug){
+                        printf("Postwrite FP = %u\n", treeFile);
+                        printf("leftBuffer: ");
+                        for(int i = 0; i < 4; i++){
+                            printf("%u ", leftBuffer[i]);
+                        }
+                        printf("\n");
+                        for(int i = 0; i < bt1_cellsperpage; i++){
+                            for(int j = 0; j < bt1_keysize; j++){
+                                printf("%u ", leftBuffer[bt1_headersize+(bt1_cellsize*i)+j]);
+                            }
+                            printf("\n");
+                            for(int j = 0; j < bt1_valsize; j++){
+                                printf("%u ", leftBuffer[bt1_headersize+bt1_keysize+(bt1_cellsize*i)+j]);
+                            }
+                            printf("\n");
+                            for(int j = 0; j < 4; j++){
+                                printf("%u ", leftBuffer[bt1_headersize+bt1_keysize+bt1_valsize+(bt1_cellsize*i)+j]);
+                            }
+                            printf("\n");
+                        }
+                        for(int i = 0; i < 4; i++){
+                            printf("%u ", leftBuffer[bt1_headersize+(bt1_cellsperpage*bt1_cellsize)+i]);
+                        }
+                        printf("\n");
+                        printf("rightBuffer: ");
+                        for(int i = 0; i < 4; i++){
+                            printf("%u ", rightBuffer[i]);
+                        }
+                        printf("\n");
+                        for(int i = 0; i < bt1_cellsperpage; i++){
+                            for(int j = 0; j < bt1_keysize; j++){
+                                printf("%u ", rightBuffer[bt1_headersize+(bt1_cellsize*i)+j]);
+                            }
+                            printf("\n");
+                            for(int j = 0; j < bt1_valsize; j++){
+                                printf("%u ", rightBuffer[bt1_headersize+bt1_keysize+(bt1_cellsize*i)+j]);
+                            }
+                            printf("\n");
+                            for(int j = 0; j < 4; j++){
+                                printf("%u ", rightBuffer[bt1_headersize+bt1_keysize+bt1_valsize+(bt1_cellsize*i)+j]);
+                            }
+                            printf("\n");
+                        }
+                        for(int i = 0; i < 4; i++){
+                            printf("%u ", rightBuffer[bt1_headersize+(bt1_cellsperpage*bt1_cellsize)+i]);
+                        }
+                        printf("\n");
+                        printf("pageBuffer: ");
+                        for(int i = 0; i < 4; i++){
+                            printf("%u ", pageBuffer[i]);
+                        }
+                        printf("\n");
+                        for(int i = 0; i < bt1_cellsperpage; i++){
+                            for(int j = 0; j < bt1_keysize; j++){
+                                printf("%u ", pageBuffer[bt1_headersize+(bt1_cellsize*i)+j]);
+                            }
+                            printf("\n");
+                            for(int j = 0; j < bt1_valsize; j++){
+                                printf("%u ", pageBuffer[bt1_headersize+bt1_keysize+(bt1_cellsize*i)+j]);
+                            }
+                            printf("\n");
+                            for(int j = 0; j < 4; j++){
+                                printf("%u ", pageBuffer[bt1_headersize+bt1_keysize+bt1_valsize+(bt1_cellsize*i)+j]);
+                            }
+                            printf("\n");
+                        }
+                        for(int i = 0; i < 4; i++){
+                            printf("%u ", pageBuffer[bt1_headersize+(bt1_cellsperpage*bt1_cellsize)+i]);
+                        }
+                        printf("\n");
+                    }
                     int cellIdx = 0;
                     while(btree_pointertoint(&pageBuffer[bt1_headersize+(cellIdx*bt1_cellsize)+bt1_cellpointeroffset]) != pageIdx){
                         // check cells.
@@ -780,6 +883,7 @@ int btree_addvalue(FILE* treeFile, uint8_t key[64], uint8_t val[64], uint8_t pre
                         }
                         for(int i = 0; i < 4; i++){
                             splitPointer[i] = newPointer[i];
+                            // this is getting lost somehow.
                         }
                         pageIdx = parentIdx;
                         // Loop back to the beginning, perform the split procedure.
@@ -793,8 +897,8 @@ int btree_addvalue(FILE* treeFile, uint8_t key[64], uint8_t val[64], uint8_t pre
                     // Make sure that the new buffers have parent pointers to 0 0 0 1
                     uint8_t rootPointer[4] = {0,0,0,1};
                     for(int i = 0; i < 4; i++){
-                        leftBuffer[i] = rootPointer[4];
-                        rightBuffer[i] = rootPointer[4];
+                        leftBuffer[i] = rootPointer[i];
+                        rightBuffer[i] = rootPointer[i];
                     }
                     // Write the new page as normal, then find a NEW free page for the old page.
                     // Write the ROOT as a new single entry node of the promoted key.
@@ -809,7 +913,7 @@ int btree_addvalue(FILE* treeFile, uint8_t key[64], uint8_t val[64], uint8_t pre
                     uint8_t secondFreePointer[4];
                     btree_inttopointer(secondFreeIdx, secondFreePointer);
                     fseek(treeFile,bt1_pagesize*(secondFreeIdx-1), SEEK_SET);
-                    fwrite(leftBuffer, sizeof(leftBuffer[0]), bt1_pagesize, treeFile);
+                    fwrite(rightBuffer, sizeof(leftBuffer[0]), bt1_pagesize, treeFile);
                     // rectify both new nodes
                     if(bt1_debug){
                         printf("Rectifying Children of new pages %u and %u...\n", freeIdx, secondFreeIdx);
