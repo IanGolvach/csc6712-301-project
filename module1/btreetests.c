@@ -37,7 +37,7 @@ int main(void){
     // //fclose(fp);
     // time_t startTime = time(NULL);
     // srand(time(NULL));
-    for(long long i = 0; i < 46; i++){ // problem split at 508 and 46
+    for(long long i = 0; i < 1000000; i++){ // problem split at 514 and 46 and 5378
         //FILE* fp = fopen("test.tmp","r+");
         // if(i%2==0){
         //     for(long long j = 0; j < 64; j++){
@@ -55,18 +55,24 @@ int main(void){
         // }
         memset(addKey, 5, 64);
         memset(addVal, 5, 64);
-        addKey[0] = i % 256;
-        addKey[1] = i / 256;
-        // if(i % 2 == 0){
-        //     addKey[0] = 255 - (i % 256);
-        //     addKey[1] = 255 - (i / 256);
-        // } else {
-        //     addKey[0] = i % 256;
-        //     addKey[1] = i / 256;
-        // }
+        // addKey[0] = i % 256;
+        // addKey[1] = i / 256;
+        if(i % 2 == 0){
+            addKey[0] = 255 - (i % 256);
+            addKey[1] = 255 - ((i / 256) % 256);
+            addKey[2] = 255 - (i / (256*256)) % 256;
+
+        } else {
+            addKey[0] = i % 256;
+            addKey[1] = (i / 256) % 256;
+            addKey[2] = (i / (256*256)) % 256;
+        }
         
         printf("%lli/200: Result of attempting to add a new key and val: %u\n", i, btree_addvalue(fp, addKey, addVal, addPrev));
+        //printf("Result of attempting to find the new key: %u\n", btree_findkey(fp, addKey, addRet));
     }
+    memset(addKey, 1, 64);
+    printf("Result of attempting to find the old key: %i\n", btree_findkey(fp, addKey, addRet));
     // printf("\nInserting 20000 random values took %.f seconds.", startTime - time(NULL));
     fclose(fp);
 }
