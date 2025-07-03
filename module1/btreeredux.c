@@ -73,8 +73,8 @@ void btree_cellcmp(uint8_t cell1[bt1_cellsize], uint8_t cell2[bt1_cellsize]){
 /**
  * @brief Insert the cell ic into the pb, potentially carrying over an after pointer into the end.
  */
-void btree_insertCell(uint8_t pb[bt1_pagesize], uint8_t ic[bt1_cellsize]){
-
+void btree_insertCell(uint8_t pb[bt1_pagesize], uint8_t ret[bt1_pagesize], uint8_t ic[bt1_cellsize], int insIdx){
+    
 }
 
 /**
