@@ -351,11 +351,25 @@ int btree_addvalue(FILE* treeFile, uint8_t key[64], uint8_t val[64], uint8_t pre
     while(btbuffer_checkFull(pageBuffer)){
         if(pageIdx == 1){
             // ROOT
-
+            btree_makeSplits(pageBuffer, leftBuffer, rightBuffer, insertCell, insIdx, promotedCell, true)
         } else {
             // NON-ROOT
             btree_makeSplits(pageBuffer, leftBuffer, rightBuffer, insertCell, insIdx, promotedCell, false);
-            
+            uint32_t newPageIdx = btree_findfreepage(treeFile);
+            uint32_t parentIdx = btree_findfreepage(pageBuffer);
+            fseek(treeFile, bt1_pagesize*(parentIdx-1), SEEK_SET);
+            fread(pageBuffer, sizeof(pageBuffer[0]), bt1_pagesize, treeFile);
+            // fill in the insCell's pointer to the new idx.
+            uint8_t newPagePtr[4];
+            btreepointertoint(newPageIdx, newPagePtr);
+            if (btbuffer_checkFull(pageBuffer)){
+                // still need to split again, set up for it
+            } else {
+                // insert and be done with it.
+                // write left and right buffer
+                // rectify left children
+                // fill in in
+            }
         }
     }
     return 0;
