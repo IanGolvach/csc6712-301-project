@@ -282,6 +282,25 @@ int btree_findkey(FILE* treeFile, uint8_t key[64], uint8_t ret[64]){
     }
 }
 
+/**
+ * @brief find which cell a pointer is at
+ * @return -1 if none exist, otherwise the index.
+ */
+int btree_findPointerCell(uint8_t pb[bt1_pagesize], uint32_t pIdx){
+    uint8_t pt[4];
+    btree_inttopointer(pIdx, pt);
+    for(int i = 0; i < bt1_cellsperpage; i++){
+        isSame = true;
+        for (int j = 0; j < 4; j++){
+            isSame = isSame && pb[btbuffer_celloffset(i)+bt1_cellpointeroffset+j] = pt[j];
+        }
+        if(isSame){
+            return i;
+        }
+    }
+    return -1;
+}
+
 // Load root into buffer, traverse tree until either key is found or no key exists.
 // If key is found, replace key value and return 1
 // If no key is found, add the key and split if necessary, return 0
@@ -362,10 +381,20 @@ int btree_addvalue(FILE* treeFile, uint8_t key[64], uint8_t val[64], uint8_t pre
             // fill in the insCell's pointer to the new idx.
             uint8_t newPagePtr[4];
             btreepointertoint(newPageIdx, newPagePtr);
+            for(int i = 0; i < 4; i++){
+                promotedCell[bt1_cellpointeroffset+i] = newPagePtr[i];
+            }
+            insIdx = btree_findPointerCell(pb, pageIdx);
+            // write left and right buffer
             if (btbuffer_checkFull(pageBuffer)){
                 // still need to split again, set up for it
+                for(int = 0; i < bt1_cellsize; i++){
+                    insertCell[i] = promotedCell[i];
+                }
             } else {
                 // insert and be done with it.
+                uint8_t retBuffer[bt1_pagesize];
+                btree_insertCell(pageBuffer, retBuffer, promotedCell, insIdx);
                 // write left and right buffer
                 // rectify left children
                 // fill in in
