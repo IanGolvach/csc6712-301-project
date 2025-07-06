@@ -12,6 +12,9 @@ btreebenchmarkreads: btreebenchmarkreads.o btreeproj.o
 btreeproj: btreeproj.o
 	$(CC) -o btreeproj btreeproj.o
 
+btreetestsredux: btreetests.o btreeredux.o
+	$(CC) -o btreetestsredux btreeredux.o btreetests.o
+
 btreetests: btreetests.o btreeproj.o
 	$(CC) -o btreetests btreeproj.o btreetests.o
 
@@ -26,5 +29,8 @@ btreebenchmarkreads.o: btreebenchmarkreads.c
 
 btreeproj.o: btreeproj.c
 	$(CC) $(CFLAGS) -o btreeproj.o btreeproj.c
+
+btreeredux.o: btreeredux.c btreeproj.h
+	$(CC) $(CFLAGS) -o btreeredux.o btreeredux.c
 
 clean: rm -f btreeproj *.o

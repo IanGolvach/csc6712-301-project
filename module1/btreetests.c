@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <sys/time.h>
 
 int main(void){
     printf("We running with it!\n");
@@ -37,7 +38,9 @@ int main(void){
     // //fclose(fp);
     // time_t startTime = time(NULL);
     // srand(time(NULL));
-    for(long long i = 0; i < 1000000; i++){ // problem split at 514 and 46 and 5378
+    struct timeval stop, start;
+    gettimeofday(&start, NULL);
+    for(long long i = 0; i < 100000; i++){ // problem split at 514 and 46 and 5378 and 259
         //FILE* fp = fopen("test.tmp","r+");
         // if(i%2==0){
         //     for(long long j = 0; j < 64; j++){
@@ -71,8 +74,10 @@ int main(void){
         printf("%lli/200: Result of attempting to add a new key and val: %u\n", i, btree_addvalue(fp, addKey, addVal, addPrev));
         //printf("Result of attempting to find the new key: %u\n", btree_findkey(fp, addKey, addRet));
     }
+    gettimeofday(&stop, NULL);
     memset(addKey, 1, 64);
     printf("Result of attempting to find the old key: %i\n", btree_findkey(fp, addKey, addRet));
+    printf("100k insertions performed in %lu seconds\n",(stop.tv_sec - start.tv_sec));
     // printf("\nInserting 20000 random values took %.f seconds.", startTime - time(NULL));
     fclose(fp);
 }
