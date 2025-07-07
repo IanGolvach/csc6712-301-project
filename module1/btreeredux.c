@@ -79,6 +79,35 @@ uint32_t btree_findfreepage(FILE* treeFile){
 }
 
 /**
+ * @brief Finds the earliest free index to write a page to
+ * @return The integer index of the writable page
+ */
+uint32_t btree_findfreepageMEM(uint8_t* mb){
+    uint8_t pageBuffer[bt1_pagesize];
+    bool pageFree = false;
+    int idx = 1; // page indices start at 1, we won' be checking the root.
+    while(!pageFree && idx < bt1_memorypages){
+        idx++;
+        for(int i = 0; i < bt1_pagesize; i++){
+            pageBuffer[i] = mb[(bt1_pagesize*((idx)-1))+i];
+        }
+        // check if free
+        pageFree = true;
+        for(int i = 0; i < bt1_pagesize; i++){
+            pageFree = pageFree && pageBuffer[i] == 0;
+        }
+    }
+    if(!pageFree && idx == bt1_memorypages){
+        return 0;
+        printf("OUTOFMEMORY, EXIT IMMEDIATELY\n")
+    }
+    if(bt1_debug){
+        printf("NewPageIdx=%u",idx);
+    }
+    return idx;
+}
+
+/**
  * @brief Initializes the root for a new database in the given file.
  * @return 1 if successful, otherwise 0.
  */
@@ -114,6 +143,40 @@ void btree_inttopointer(uint32_t pageIndex, uint8_t dest[4]){
     dest[3] = (pageIndex << 24) >> 24;
 }
 
+/**
+ * @brief For all children of a node, set their parent pointer to the given idx
+ */
+void btree_rectifyChildrenParentsMEM(uint32_t parentIdx, uint8_t* mb){
+    uint8_t parentBuffer[bt1_pagesize], childBuffer[bt1_pagesize], nullKey[64], parentPointer[4];
+    btree_inttopointer(parentIdx, parentPointer);
+    memset(nullKey, 0, 64);
+    uint32_t childIdx;
+    for(int i = 0; i < bt1_pagesize; i++){
+        parentBuffer[i] = mb[(bt1_pagesize*((parentIdx)-1))+i];
+    }
+    if(bt1_debug){
+        printf("Read the childbuffer, time to check the cells...\n");
+    }
+    for(int i = 0; i < bt1_cellsperpage+1; i++){
+        if(i < bt1_cellsperpage){
+            childIdx = btree_pointertoint(&parentBuffer[bt1_headersize+(bt1_cellsize*i)+bt1_cellpointeroffset]);
+        }
+        else{
+            childIdx = btree_pointertoint(&parentBuffer[bt1_headersize+(bt1_cellsize*i)]);
+        }
+        if(childIdx != 0){
+            for(int i = 0; i < bt1_pagesize; i++){
+                childBuffer[i] = mb[(bt1_pagesize*((childIdx)-1))+i];
+            }
+            for(int j = 0; j < 4; j++){
+                childBuffer[j] = parentPointer[j];
+            }
+            for(int i = 0; i < bt1_pagesize; i++){
+                mb[(bt1_pagesize*((childIdx)-1))+i] = childBuffer[i];
+            }
+        }
+    }
+}
 
 /**
  * @brief For all children of a node, set their parent pointer to the given idx
