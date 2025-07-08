@@ -8,7 +8,7 @@
 #include <time.h>
 
 
-btbuffer_printbuffer(uint8_t pb[bt1_pagesize]){
+void btbuffer_printbuffer(uint8_t pb[bt1_pagesize]){
     printf("pageBuffer: ");
     for(int i = 0; i < 4; i++){
         printf("%u ", pb[i]);
@@ -99,7 +99,7 @@ uint32_t btree_findfreepageMEM(uint8_t* mb){
     }
     if(!pageFree && idx == bt1_memorypages){
         return 0;
-        printf("OUTOFMEMORY, EXIT IMMEDIATELY\n")
+        printf("OUTOFMEMORY, EXIT IMMEDIATELY\n");
     }
     if(bt1_debug){
         printf("NewPageIdx=%u",idx);
@@ -490,7 +490,11 @@ int btree_findkey(FILE* treeFile, uint8_t key[64], uint8_t ret[64]){
     uint8_t* mb; // empty pointer to use in case of usememory == 1
     if(bt1_usememory){
         // TODO: load entire btree file into mb
+        mb = malloc(bt1_pagesize*bt1_memorypages);
+        memset(mb, 0, bt1_pagesize*bt1_memorypages);
+        fread(mb, sizeof(mb[0]), bt1_pagesize*bt1_memorypages, treeFile);
         traverseResult = btree_memTraverse(mb, searchCell, &pageIdx, &fiiResult, pageBuffer);
+        free(mb);
     } else {
         traverseResult = btree_fileTraverse(treeFile, searchCell, &pageIdx, &fiiResult, pageBuffer);
     }
@@ -553,6 +557,9 @@ int btree_addvalue(FILE* treeFile, uint8_t key[64], uint8_t val[64], uint8_t pre
     uint8_t* mb; // empty pointer to use in case of usememory == 1
     if(bt1_usememory){
         // TODO: load entire btree file into mb
+        mb = malloc(bt1_pagesize*bt1_memorypages);
+        memset(mb, 0, bt1_pagesize*bt1_memorypages);
+        fread(mb, sizeof(mb[0]), bt1_pagesize*bt1_memorypages, treeFile);
         traverseResult = btree_memTraverse(mb, insertCell, &pageIdx, &fiiResult, pageBuffer);
     } else {
         traverseResult = btree_fileTraverse(treeFile, insertCell, &pageIdx, &fiiResult, pageBuffer);
@@ -570,6 +577,9 @@ int btree_addvalue(FILE* treeFile, uint8_t key[64], uint8_t val[64], uint8_t pre
             for(int i = 0; i < bt1_pagesize; i++){
                 mb[(bt1_pagesize*(pageIdx-1))+i] = pageBuffer[i];
             }
+            fseek(treeFile, 0, SEEK_SET);
+            fwrite(mb, sizeof(mb[0]), bt1_pagesize*bt1_memorypages, treeFile);
+            free(mb);
             // Write entire log back
         } else {
             fseek(treeFile, bt1_pagesize*(pageIdx-1), SEEK_SET);
@@ -587,6 +597,9 @@ int btree_addvalue(FILE* treeFile, uint8_t key[64], uint8_t val[64], uint8_t pre
             for(int i = 0; i < bt1_pagesize; i++){
                 mb[(bt1_pagesize*(pageIdx-1))+i] = retBuffer[i];
             }
+            fseek(treeFile, 0, SEEK_SET);
+            fwrite(mb, sizeof(mb[0]), bt1_pagesize*bt1_memorypages, treeFile);
+            free(mb);
             // Write entire log back
         } else {
             fseek(treeFile, bt1_pagesize*(pageIdx-1), SEEK_SET);
@@ -605,20 +618,44 @@ int btree_addvalue(FILE* treeFile, uint8_t key[64], uint8_t val[64], uint8_t pre
             // ROOT
             btree_makeSplits(pageBuffer, leftBuffer, rightBuffer, insertCell, insIdx, promotedCell, true);
             // left-side
-            uint32_t newPageIdx = btree_findfreepage(treeFile);
+            uint32_t newPageIdx;
+            if(bt1_usememory){
+                newPageIdx = btree_findfreepageMEM(mb);
+            } else {
+                newPageIdx = btree_findfreepage(treeFile);
+            }
             uint8_t newPagePtr[4];
             btree_inttopointer(newPageIdx, newPagePtr);
             for(int i = 0; i < 4; i++){
                 promotedCell[bt1_cellpointeroffset+i] = newPagePtr[i];
             }
-            fseek(treeFile, bt1_pagesize*(newPageIdx-1), SEEK_SET);
-            fwrite(leftBuffer, sizeof(leftBuffer[0]), bt1_pagesize, treeFile);
+            if(bt1_usememory){
+                for(int i = 0; i < bt1_pagesize; i++){
+                    mb[bt1_pagesize*(newPageIdx-1)+i] = leftBuffer[i];
+                }
+            } else {
+                fseek(treeFile, bt1_pagesize*(newPageIdx-1), SEEK_SET);
+                fwrite(leftBuffer, sizeof(leftBuffer[0]), bt1_pagesize, treeFile);
+            }
+            
             // right-side
-            uint32_t newPageIdx2 = btree_findfreepage(treeFile);
+            uint32_t newPageIdx2;
+            if(bt1_usememory){
+                newPageIdx2 = btree_findfreepageMEM(mb);
+            } else {
+                newPageIdx2 = btree_findfreepage(treeFile);
+            }
             uint8_t newPagePtr2[4];
             btree_inttopointer(newPageIdx2, newPagePtr2);
-            fseek(treeFile, bt1_pagesize*(newPageIdx2-1), SEEK_SET);
-            fwrite(rightBuffer, sizeof(rightBuffer[0]), bt1_pagesize, treeFile);
+            if(bt1_usememory){
+                for(int i = 0; i < bt1_pagesize; i++){
+                    mb[bt1_pagesize*(newPageIdx2-1)+i] = rightBuffer[i];
+                }
+            } else {
+                fseek(treeFile, bt1_pagesize*(newPageIdx2-1), SEEK_SET);
+                fwrite(rightBuffer, sizeof(rightBuffer[0]), bt1_pagesize, treeFile);
+            }
+            
             // btbuffer_writeapointer(uint8_t* pb, uint8_t p[4], int cellIdx)
             // btbuffer_writecell(uint8_t* pb, uint8_t cell[bt1_cellsize], int cellIdx)
             // Zero out pb, insert cell and write after pointer
@@ -626,11 +663,23 @@ int btree_addvalue(FILE* treeFile, uint8_t key[64], uint8_t val[64], uint8_t pre
             btbuffer_writecell(pageBuffer, promotedCell, 0);
             btbuffer_writeapointer(pageBuffer, newPagePtr2, 1);
             // write the new root.
-            fseek(treeFile, 0, SEEK_SET);
-            fwrite(pageBuffer, (sizeof(pageBuffer[0])), bt1_pagesize, treeFile);
+            if(bt1_usememory){
+                for(int i = 0; i < bt1_pagesize; i++){
+                    mb[i] = pageBuffer[i];
+                }
+            } else {
+                fseek(treeFile, 0, SEEK_SET);
+                fwrite(pageBuffer, (sizeof(pageBuffer[0])), bt1_pagesize, treeFile);
+            }
+            
             // rectify the children
-            btree_rectifyChildrenParents(newPageIdx, treeFile);
-            btree_rectifyChildrenParents(newPageIdx2, treeFile);
+            if(bt1_usememory){
+                btree_rectifyChildrenParentsMEM(newPageIdx, mb);
+                btree_rectifyChildrenParentsMEM(newPageIdx2, mb);
+            } else {
+                btree_rectifyChildrenParents(newPageIdx, treeFile);
+                btree_rectifyChildrenParents(newPageIdx2, treeFile);
+            }
             if(bt1_debug){
                 printf("ROOTRESULTS\nLEFT\n");
                 btbuffer_printbuffer(leftBuffer);
@@ -642,10 +691,22 @@ int btree_addvalue(FILE* treeFile, uint8_t key[64], uint8_t val[64], uint8_t pre
         } else {
             // NON-ROOT
             btree_makeSplits(pageBuffer, leftBuffer, rightBuffer, insertCell, insIdx, promotedCell, false);
-            uint32_t newPageIdx = btree_findfreepage(treeFile);
+            uint32_t newPageIdx;
+            if(bt1_usememory){
+                newPageIdx = btree_findfreepageMEM(mb);
+            } else {
+                newPageIdx = btree_findfreepage(treeFile);
+            }
             uint32_t parentIdx = btbuffer_readheaderint(pageBuffer);
-            fseek(treeFile, bt1_pagesize*(parentIdx-1), SEEK_SET);
-            fread(pageBuffer, sizeof(pageBuffer[0]), bt1_pagesize, treeFile);
+            if(bt1_usememory){
+                for(int i = 0; i < bt1_pagesize; i++){
+                    pageBuffer[i] = mb[bt1_pagesize*(parentIdx-1)+i];
+                }
+            } else {
+                fseek(treeFile, bt1_pagesize*(parentIdx-1), SEEK_SET);
+                fread(pageBuffer, sizeof(pageBuffer[0]), bt1_pagesize, treeFile);
+            }
+            
             // fill in the insCell's pointer to the new idx.
             uint8_t newPagePtr[4];
             btree_inttopointer(newPageIdx, newPagePtr);
@@ -654,10 +715,17 @@ int btree_addvalue(FILE* treeFile, uint8_t key[64], uint8_t val[64], uint8_t pre
             }
             insIdx = btree_findPointerCell(pageBuffer, pageIdx);
             // write left and right buffer
-            fseek(treeFile, bt1_pagesize*(pageIdx-1), SEEK_SET);
-            fwrite(rightBuffer, sizeof(rightBuffer[0]), bt1_pagesize, treeFile);
-            fseek(treeFile,bt1_pagesize*(newPageIdx-1), SEEK_SET);
-            fwrite(leftBuffer, sizeof(leftBuffer[0]), bt1_pagesize, treeFile);
+            if(bt1_usememory){
+                for(int i = 0; i < bt1_pagesize; i++){
+                    mb[bt1_pagesize*(pageIdx-1)+i] = rightBuffer[i];
+                    mb[bt1_pagesize*(newPageIdx-1)+i] = leftBuffer[i];
+                }
+            } else {
+                fseek(treeFile, bt1_pagesize*(pageIdx-1), SEEK_SET);
+                fwrite(rightBuffer, sizeof(rightBuffer[0]), bt1_pagesize, treeFile);
+                fseek(treeFile,bt1_pagesize*(newPageIdx-1), SEEK_SET);
+                fwrite(leftBuffer, sizeof(leftBuffer[0]), bt1_pagesize, treeFile);
+            }
             if(bt1_debug){
                 printf("SPLITRESULTS\nLEFT\n");
                 btbuffer_printbuffer(leftBuffer);
@@ -667,7 +735,13 @@ int btree_addvalue(FILE* treeFile, uint8_t key[64], uint8_t val[64], uint8_t pre
                 btbuffer_printbuffer(pageBuffer);
             }
             // rectify children
-            btree_rectifyChildrenParents(newPageIdx, treeFile);// use legacy method for now.
+            if(bt1_usememory){
+                btree_rectifyChildrenParentsMEM(newPageIdx, mb);
+            } else {
+                btree_rectifyChildrenParents(newPageIdx, treeFile);
+
+            }
+            // use legacy method for now.
             if (btbuffer_checkFull(pageBuffer)){
                 // still need to split again, set up for it
                 for(int i = 0; i < bt1_cellsize; i++){
@@ -679,10 +753,22 @@ int btree_addvalue(FILE* treeFile, uint8_t key[64], uint8_t val[64], uint8_t pre
                 uint8_t retBuffer[bt1_pagesize];
                 btree_insertCell(pageBuffer, retBuffer, promotedCell, insIdx);
                 // fill in in
-                fseek(treeFile, bt1_pagesize*(parentIdx-1), SEEK_SET);
-                fwrite(retBuffer, sizeof(retBuffer[0]), bt1_pagesize, treeFile);
+                if(bt1_usememory){
+                    for(int i = 0; i < bt1_pagesize; i ++){
+                        mb[bt1_pagesize*(parentIdx-1)+i] = retBuffer[i];
+                    }
+                } else {
+                    fseek(treeFile, bt1_pagesize*(parentIdx-1), SEEK_SET);
+                    fwrite(retBuffer, sizeof(retBuffer[0]), bt1_pagesize, treeFile);
+                }
+                
             }
         }
+    }
+    fseek(treeFile, 0, SEEK_SET);
+    fwrite(mb, sizeof(mb[0]), bt1_pagesize*bt1_memorypages, treeFile);
+    if(bt1_usememory){
+        free(mb);
     }
     return 0;
 }

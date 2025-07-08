@@ -12,7 +12,9 @@ int main(void){
     printf("We running with it!\n");
     // Lets create a basic file to work with.
     FILE* fp = fopen("test.tmp","w+");
-    printf("Result of attempting to create a new db: %u\n", btree_createNewDB(fp));
+    printf("File opened.\n");
+    int createResult = btree_createNewDB(fp);
+    printf("Result of attempting to create a new db: %u\n", createResult);
     uint8_t addKey[64], addVal[64], addPrev[64], addRet[64];
     memset(addKey, 1, 64);
     memset(addVal, 2, 64);
