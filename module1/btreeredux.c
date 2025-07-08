@@ -113,11 +113,18 @@ uint32_t btree_findfreepageMEM(uint8_t* mb){
  */
 int btree_createNewDB(FILE* treeFile){
     // db has special parent header NULL (0)
-    uint8_t pageBuffer[bt1_pagesize];
-    for(int i = 0; i < bt1_pagesize; i++){
-        pageBuffer[i] = 0; 
+    if(bt1_usememory){
+        uint8_t* pageBuffer = malloc(bt1_pagesize*bt1_memorypages);
+        memset(pageBuffer, 0, bt1_pagesize*bt1_memorypages);
+        fwrite(pageBuffer, sizeof(pageBuffer[0]), bt1_pagesize, treeFile);
+    } else {
+        uint8_t pageBuffer[bt1_pagesize];
+        for(int i = 0; i < bt1_pagesize; i++){
+            pageBuffer[i] = 0; 
+        }
+        fwrite(pageBuffer, sizeof(pageBuffer[0]), bt1_pagesize, treeFile);
     }
-    fwrite(pageBuffer, sizeof(pageBuffer[0]), bt1_pagesize, treeFile);
+    
     return 1;
 }
 

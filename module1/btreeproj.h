@@ -101,9 +101,9 @@
 
 #define bt1_valsize 64
 
-#define bt1_debug 1
+#define bt1_debug 0
 
-#define bt1_usememory 0
+#define bt1_usememory 1
 
 #define bt1_memorypages 4096
 
