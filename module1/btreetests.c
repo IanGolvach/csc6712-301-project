@@ -42,7 +42,7 @@ int main(void){
     // srand(time(NULL));
     struct timeval stop, start;
     gettimeofday(&start, NULL);
-    for(long long i = 0; i < 200000; i++){ // problem split at 514 and 46 and 5378 and 259
+    for(long long i = 0; i < 1000; i++){ // problem split at 514 and 46 and 5378 and 259
         //FILE* fp = fopen("test.tmp","r+");
         // if(i%2==0){
         //     for(long long j = 0; j < 64; j++){
