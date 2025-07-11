@@ -103,9 +103,9 @@
 
 #define bt1_debug 0
 
-#define bt1_usememory 0
+#define bt1_usememory 1
 
-#define bt1_memorypages 64
+#define bt1_memorypages 4096*24
 
 // Load root into buffer, traverse tree until either key is found or no key exists.
 // Return NULL if no such key exists, otherwise return pointer to value.
@@ -113,7 +113,7 @@
  * @brief Finds the value of a given key if it exists in the btree, gives a pointer back to its temporary location in memory.
  * @return 1 if anything is found, otherwise 0. Return actual value to ret.
  */
-int btree_findkey(FILE* treeFile, uint8_t key[64], uint8_t ret[64]);
+int btree_findkey(uint8_t** mb, uint8_t key[64], uint8_t ret[64]);
 
 // Load root into buffer, traverse tree until either key is found or no key exists.
 // If key is found, replace key value and return 1
@@ -123,7 +123,7 @@ int btree_findkey(FILE* treeFile, uint8_t key[64], uint8_t ret[64]);
  * @brief Add a value to the DB in the specified filedesc, prev will return the previous value if it exists, otherwise will become NULL
  * @return 1 if key replace, 0 if key added, -1 if key can't be added
  */
-int btree_addvalue(FILE* treeFile, uint8_t key[64], uint8_t val[64], uint8_t prev[64]);
+int btree_addvalue(uint8_t** mb, uint8_t key[64], uint8_t val[64], uint8_t prev[64], uint64_t* size_mb);
 
 // Load root into buffer, traverse tree until either key is found or no key exists.
 // If key is found, remove and merge as necessary, return 0.
@@ -158,3 +158,6 @@ int btree_createNewDB(FILE* treeFile);
  */
 uint32_t btree_pointertoint(uint8_t pointer[4]);
 
+int btree_readDB(FILE* treeFile, uint8_t** mb, uint64_t* size_mb);
+
+int btree_writeDB(FILE* treeFile, uint8_t** mb, uint64_t* size_mb);

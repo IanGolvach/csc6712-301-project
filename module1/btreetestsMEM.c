@@ -1,7 +1,7 @@
 
 
 #include <stdint.h>
-#include "btreeproj.h"
+#include "btreeprojMEM.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,13 +15,17 @@ int main(void){
     printf("File opened.\n");
     int createResult = btree_createNewDB(fp);
     printf("Result of attempting to create a new db: %u\n", createResult);
+    // get the buffer and size
+    uint64_t size_mb;
+    uint8_t* mb;
+    btree_readDB(fp, &mb, &size_mb);
     uint8_t addKey[64], addVal[64], addPrev[64], addRet[64];
     memset(addKey, 1, 64);
     memset(addVal, 2, 64);
     memset(addPrev, 0, 64);
     memset(addRet, 0, 64);
-    printf("Result of attempting to add a new key and val: %u\n", btree_addvalue(fp, addKey, addVal, addPrev));
-    printf("Result of attempting to find the new key: %u\n", btree_findkey(fp, addKey, addRet));
+    printf("Result of attempting to add a new key and val: %u\n", btree_addvalue(&mb, addKey, addVal, addPrev, &size_mb));
+    printf("Result of attempting to find the new key: %u\n", btree_findkey(&mb, addKey, addRet));
     bool isCorrect = true;
     for(int i = 0; i < 64; i++){
         isCorrect = isCorrect && addVal[i] == addRet[i];
@@ -29,7 +33,7 @@ int main(void){
     if(isCorrect){
         printf("The value was returned correctly!\n");
     }
-    printf("Result of attempting to readd a new key and val: %u\n", btree_addvalue(fp, addKey, addVal, addPrev));
+    printf("Result of attempting to readd a new key and val: %u\n", btree_addvalue(&mb, addKey, addVal, addPrev, &size_mb));
     isCorrect = true;
     for(int i = 0; i < 64; i++){
         isCorrect = isCorrect && addVal[i] == addPrev[i];
@@ -40,7 +44,7 @@ int main(void){
     // //fclose(fp);
     // time_t startTime = time(NULL);
     // srand(time(NULL));
-    long num_tests = 100000;
+    long num_tests = 1000000;
     struct timeval stop, start;
     gettimeofday(&start, NULL);
     for(long long i = 0; i < num_tests; i++){ // problem split at 514 and 46 and 5378 and 259
@@ -74,14 +78,14 @@ int main(void){
             addKey[2] = (i / (256*256)) % 256;
         }
         
-        printf("%lli/200: Result of attempting to add a new key and val: %u\n", i, btree_addvalue(fp, addKey, addVal, addPrev));
+        printf("%lli/200: Result of attempting to add a new key and val: %u, current size of buffer %lu\n", i, btree_addvalue(&mb, addKey, addVal, addPrev, &size_mb), size_mb);
         //printf("Result of attempting to find the new key: %u\n", btree_findkey(fp, addKey, addRet));
     }
     gettimeofday(&stop, NULL);
     memset(addKey, 1, 64);
-    printf("Result of attempting to find the old key: %i\n", btree_findkey(fp, addKey, addRet));
-    printf("100k insertions performed in %lu seconds\n",(stop.tv_sec - start.tv_sec));
-        for(long long i = 0; i < num_tests; i++){ // for some reason, split at 517 is considered NONROOT
+    printf("Result of attempting to find the old key: %i\n", btree_findkey(&mb, addKey, addRet));
+    printf("100000 insertions performed in %lu seconds\n",(stop.tv_sec - start.tv_sec));
+    for(long long i = 0; i < num_tests; i++){ // problem split at 514 and 46 and 5378 and 259
         //FILE* fp = fopen("test.tmp","r+");
         // if(i%2==0){
         //     for(long long j = 0; j < 64; j++){
@@ -111,20 +115,24 @@ int main(void){
             addKey[1] = (i / 256) % 256;
             addKey[2] = (i / (256*256)) % 256;
         }
-        int findResult = btree_findkey(fp, addKey, addRet);
-        printf("%lli/200: Result of attempting to find an old key and val: %u\r", i, findResult);
+        int findResult = btree_findkey(&mb, addKey, addRet);
+        printf("%lli/200: Result of attempting to find an old key and val: %u, current size of buffer %lu\n", i, findResult, size_mb);
         if(findResult!=1){
-            printf("\nFailed to find a key we inserted previously!\n");
+            printf("Failed to find a key we inserted previously!\n");
             printf("Key = ");
             for(int i = 0; i < 64; i++){
                 printf("%u ", addKey[i]);
             }
             printf("\n");
+            btree_writeDB(fp, &mb, &size_mb);
+            free(mb);
+            fclose(fp);
             return 0;
         }
         //printf("Result of attempting to find the new key: %u\n", btree_findkey(fp, addKey, addRet));
     }
-    printf("\n");
     // printf("\nInserting 20000 random values took %.f seconds.", startTime - time(NULL));
+    btree_writeDB(fp, &mb, &size_mb);
+    free(mb);
     fclose(fp);
 }

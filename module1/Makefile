@@ -15,6 +15,15 @@ btreeproj: btreeproj.o
 btreetestsredux: btreetests.o btreeredux.o
 	$(CC) -o btreetestsredux btreeredux.o btreetests.o
 
+btreetestsmemonly: btreetestsMEM.o btreereduxMEM.o
+	$(CC) -o btreetestsmemonly btreereduxMEM.o btreetestsMEM.o
+
+btreetestsMEM.o: btreetestsMEM.c
+	$(CC) $(CFLAGS) -o btreetestsMEM.o btreetestsMEM.c
+
+btreereduxMEM.o: btreereduxMEM.c btreeprojMEM.h
+	$(CC) $(CFLAGS) -o btreereduxMEM.o btreereduxMEM.c
+
 btreetests: btreetests.o btreeproj.o
 	$(CC) -o btreetests btreeproj.o btreetests.o
 
