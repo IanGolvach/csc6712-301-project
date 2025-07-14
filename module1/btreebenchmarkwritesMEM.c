@@ -20,6 +20,7 @@ int main(void){
     uint8_t* mb;
     btree_readDB(fp, &mb, &size_mb);
     uint64_t sumTime = 0;
+    uint64_t subTotal = 0;
     for(long long i = 0; i < 100; i++){
         for(int j = 0; j < 64; j++){
             addKey[j] = rand();
@@ -28,8 +29,9 @@ int main(void){
         gettimeofday(&start, NULL);
         printf("%lli/100: Result of attempting to add a new key and val: %u\r", i, btree_addvalue(&mb, addKey, addVal, addPrev, &size_mb));
         gettimeofday(&stop, NULL);
-        sumTime = sumTime + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec)/100;
+        subTotal = subTotal + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec);
     }
+    sumTime = subTotal / 100;
     printf("\nMicrosecond Average Final = %lu\n100 Write Trial 2\n",sumTime);
     btree_writeDB(fp, &mb, &size_mb);
     free(mb);
@@ -39,6 +41,7 @@ int main(void){
     printf("Result of attempting to create a new db: %u\n", createResult);
     btree_readDB(fp, &mb, &size_mb);
     sumTime = 0;
+    subTotal = 0;
     for(long long i = 0; i < 100; i++){
         for(int j = 0; j < 64; j++){
             addKey[j] = rand();
@@ -47,8 +50,9 @@ int main(void){
         gettimeofday(&start, NULL);
         printf("%lli/100: Result of attempting to add a new key and val: %u\r", i, btree_addvalue(&mb, addKey, addVal, addPrev, &size_mb));
         gettimeofday(&stop, NULL);
-        sumTime = sumTime + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec)/100;
+        subTotal = subTotal + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec);
     }
+    sumTime = subTotal / 100;
     btree_writeDB(fp, &mb, &size_mb);
     free(mb);
     fclose(fp);
@@ -58,6 +62,7 @@ int main(void){
     printf("Result of attempting to create a new db: %u\n", createResult);
     btree_readDB(fp, &mb, &size_mb);
     sumTime = 0;
+    subTotal = 0;
     for(long long i = 0; i < 100; i++){
         for(int j = 0; j < 64; j++){
             addKey[j] = rand();
@@ -66,8 +71,9 @@ int main(void){
         gettimeofday(&start, NULL);
         printf("%lli/100: Result of attempting to add a new key and val: %u\r", i, btree_addvalue(&mb, addKey, addVal, addPrev, &size_mb));
         gettimeofday(&stop, NULL);
-        sumTime = sumTime + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec)/100;
+        subTotal = subTotal + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec);
     }
+    sumTime = subTotal / 100;
     fclose(fp);
     printf("\nMicrosecond Average Final = %lu\n1000 Write Trial 1\n",sumTime);
     // 1000 writes
@@ -76,6 +82,7 @@ int main(void){
     printf("Result of attempting to create a new db: %u\n", createResult);
     btree_readDB(fp, &mb, &size_mb);
     sumTime = 0;
+    subTotal = 0;
     for(long long i = 0; i < 1000; i++){
         for(int j = 0; j < 64; j++){
             addKey[j] = rand();
@@ -84,8 +91,9 @@ int main(void){
         gettimeofday(&start, NULL);
         printf("%lli/1000: Result of attempting to add a new key and val: %u\r", i, btree_addvalue(&mb, addKey, addVal, addPrev, &size_mb));
         gettimeofday(&stop, NULL);
-        sumTime = sumTime + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec)/1000;
+        subTotal = subTotal + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec);
     }
+    sumTime = subTotal / 1000;
     printf("\nMicrosecond Average Final = %lu\n1000 Write Trial 2\n",sumTime);
     btree_writeDB(fp, &mb, &size_mb);
     free(mb);
@@ -95,6 +103,7 @@ int main(void){
     printf("Result of attempting to create a new db: %u\n", createResult);
     btree_readDB(fp, &mb, &size_mb);
     sumTime = 0;
+    subTotal = 0;
     for(long long i = 0; i < 1000; i++){
         for(int j = 0; j < 64; j++){
             addKey[j] = rand();
@@ -103,14 +112,16 @@ int main(void){
         gettimeofday(&start, NULL);
         printf("%lli/1000: Result of attempting to add a new key and val: %u\r", i, btree_addvalue(&mb, addKey, addVal, addPrev, &size_mb));
         gettimeofday(&stop, NULL);
-        sumTime = sumTime + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec)/1000;
+        subTotal = subTotal + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec);
     }
+    sumTime = subTotal / 1000;
     btree_writeDB(fp, &mb, &size_mb);
     free(mb);
     fclose(fp);
     printf("\nMicrosecond Average Final = %lu\n1000 Write Trial 3\n",sumTime);
     fp = fopen("benchmark1000-3.btree","w+");
     sumTime = 0;
+    subTotal = 0;
     for(long long i = 0; i < 1000; i++){
         for(int j = 0; j < 64; j++){
             addKey[j] = rand();
@@ -119,8 +130,9 @@ int main(void){
         gettimeofday(&start, NULL);
         printf("%lli/1000: Result of attempting to add a new key and val: %u\r", i, btree_addvalue(&mb, addKey, addVal, addPrev, &size_mb));
         gettimeofday(&stop, NULL);
-        sumTime = sumTime + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec)/1000;
+        subTotal = subTotal + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec);
     }
+    sumTime = subTotal / 1000;
     btree_writeDB(fp, &mb, &size_mb);
     free(mb);
     fclose(fp);
@@ -131,6 +143,7 @@ int main(void){
     printf("Result of attempting to create a new db: %u\n", createResult);
     btree_readDB(fp, &mb, &size_mb);
     sumTime = 0;
+    subTotal = 0;
     for(long long i = 0; i < 10000; i++){
         for(int j = 0; j < 64; j++){
             addKey[j] = rand();
@@ -139,8 +152,9 @@ int main(void){
         gettimeofday(&start, NULL);
         printf("%lli/10000: Result of attempting to add a new key and val: %u\r", i, btree_addvalue(&mb, addKey, addVal, addPrev, &size_mb));
         gettimeofday(&stop, NULL);
-        sumTime = sumTime + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec)/10000;
+        subTotal = subTotal + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec);
     }
+    sumTime = subTotal / 10000;
     btree_writeDB(fp, &mb, &size_mb);
     free(mb);
     printf("\nMicrosecond Average Final = %lu\n10000 Write Trial 2\n",sumTime);
@@ -150,6 +164,7 @@ int main(void){
     printf("Result of attempting to create a new db: %u\n", createResult);
     btree_readDB(fp, &mb, &size_mb);
     sumTime = 0;
+    subTotal = 0;
     for(long long i = 0; i < 10000; i++){
         for(int j = 0; j < 64; j++){
             addKey[j] = rand();
@@ -158,8 +173,9 @@ int main(void){
         gettimeofday(&start, NULL);
         printf("%lli/10000: Result of attempting to add a new key and val: %u\r", i, btree_addvalue(&mb, addKey, addVal, addPrev, &size_mb));
         gettimeofday(&stop, NULL);
-        sumTime = sumTime + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec)/10000;
+        subTotal = subTotal + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec);
     }
+    sumTime = subTotal / 10000;
     btree_writeDB(fp, &mb, &size_mb);
     free(mb);
     fclose(fp);
@@ -169,6 +185,7 @@ int main(void){
     printf("Result of attempting to create a new db: %u\n", createResult);
     btree_readDB(fp, &mb, &size_mb);
     sumTime = 0;
+    subTotal = 0;
     for(long long i = 0; i < 10000; i++){
         for(int j = 0; j < 64; j++){
             addKey[j] = rand();
@@ -177,8 +194,9 @@ int main(void){
         gettimeofday(&start, NULL);
         printf("%lli/10000: Result of attempting to add a new key and val: %u\r", i, btree_addvalue(&mb, addKey, addVal, addPrev, &size_mb));
         gettimeofday(&stop, NULL);
-        sumTime = sumTime + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec)/10000;
+        subTotal = subTotal + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec);
     }
+    sumTime = subTotal / 10000;
     btree_writeDB(fp, &mb, &size_mb);
     free(mb);
     fclose(fp);
@@ -189,6 +207,7 @@ int main(void){
     printf("Result of attempting to create a new db: %u\n", createResult);
     btree_readDB(fp, &mb, &size_mb);
     sumTime = 0;
+    subTotal = 0;
     for(long long i = 0; i < 100000; i++){
         for(int j = 0; j < 64; j++){
             addKey[j] = rand();
@@ -197,8 +216,13 @@ int main(void){
         gettimeofday(&start, NULL);
         printf("%lli/100000: Result of attempting to add a new key and val: %u\r", i, btree_addvalue(&mb, addKey, addVal, addPrev, &size_mb));
         gettimeofday(&stop, NULL);
-        sumTime = sumTime + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec)/100000;
+        subTotal = subTotal + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec);
+        if((i%10000)==0){
+            sumTime = sumTime + (subTotal/100000);
+            subTotal = 0;
+        }
     }
+    sumTime = sumTime + (subTotal/100000);
     btree_writeDB(fp, &mb, &size_mb);
     free(mb);
     printf("\nMicrosecond Average Final = %lu\n100000 Write Trial 2\n",sumTime);
@@ -208,6 +232,7 @@ int main(void){
     printf("Result of attempting to create a new db: %u\n", createResult);
     btree_readDB(fp, &mb, &size_mb);
     sumTime = 0;
+    subTotal = 0;
     for(long long i = 0; i < 100000; i++){
         for(int j = 0; j < 64; j++){
             addKey[j] = rand();
@@ -216,8 +241,13 @@ int main(void){
         gettimeofday(&start, NULL);
         printf("%lli/100000: Result of attempting to add a new key and val: %u\r", i, btree_addvalue(&mb, addKey, addVal, addPrev, &size_mb));
         gettimeofday(&stop, NULL);
-        sumTime = sumTime + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec)/100000;
+        subTotal = subTotal + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec);
+        if((i%10000)==0){
+            sumTime = sumTime + (subTotal/100000);
+            subTotal = 0;
+        }
     }
+    sumTime = sumTime + (subTotal/100000);
     btree_writeDB(fp, &mb, &size_mb);
     free(mb);
     fclose(fp);
@@ -227,6 +257,7 @@ int main(void){
     printf("Result of attempting to create a new db: %u\n", createResult);
     btree_readDB(fp, &mb, &size_mb);
     sumTime = 0;
+    subTotal = 0;
     for(long long i = 0; i < 100000; i++){
         for(int j = 0; j < 64; j++){
             addKey[j] = rand();
@@ -235,8 +266,13 @@ int main(void){
         gettimeofday(&start, NULL);
         printf("%lli/100000: Result of attempting to add a new key and val: %u\r", i, btree_addvalue(&mb, addKey, addVal, addPrev, &size_mb));
         gettimeofday(&stop, NULL);
-        sumTime = sumTime + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec)/100000;
+       subTotal = subTotal + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec);
+       if((i%10000)==0){
+            sumTime = sumTime + (subTotal/100000);
+            subTotal = 0;
+        }
     }
+    sumTime = sumTime + (subTotal/100000);
     btree_writeDB(fp, &mb, &size_mb);
     free(mb);
     fclose(fp);
@@ -247,6 +283,7 @@ int main(void){
     printf("Result of attempting to create a new db: %u\n", createResult);
     btree_readDB(fp, &mb, &size_mb);
     sumTime = 0;
+    subTotal = 0;
     for(long long i = 0; i < 1000000; i++){
         for(int j = 0; j < 64; j++){
             addKey[j] = rand();
@@ -255,8 +292,13 @@ int main(void){
         gettimeofday(&start, NULL);
         printf("%lli/1000000: Result of attempting to add a new key and val: %u\r", i, btree_addvalue(&mb, addKey, addVal, addPrev, &size_mb));
         gettimeofday(&stop, NULL);
-        sumTime = sumTime + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec)/1000000;
+        subTotal = subTotal + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec);
+        if((i%10000)==0){
+            sumTime = sumTime + (subTotal/1000000);
+            subTotal = 0;
+        }
     }
+    sumTime = sumTime + (subTotal/1000000);
     btree_writeDB(fp, &mb, &size_mb);
     free(mb);
     printf("\nMicrosecond Average Final = %lu\n1000000 Write Trial 2\n",sumTime);
@@ -266,6 +308,7 @@ int main(void){
     printf("Result of attempting to create a new db: %u\n", createResult);
     btree_readDB(fp, &mb, &size_mb);
     sumTime = 0;
+    subTotal = 0;
     for(long long i = 0; i < 1000000; i++){
         for(int j = 0; j < 64; j++){
             addKey[j] = rand();
@@ -274,8 +317,13 @@ int main(void){
         gettimeofday(&start, NULL);
         printf("%lli/1000000: Result of attempting to add a new key and val: %u\r", i, btree_addvalue(&mb, addKey, addVal, addPrev, &size_mb));
         gettimeofday(&stop, NULL);
-        sumTime = sumTime + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec)/1000000;
+        subTotal = subTotal + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec);
+        if((i%10000)==0){
+            sumTime = sumTime + (subTotal/1000000);
+            subTotal = 0;
+        }
     }
+    sumTime = sumTime + (subTotal/1000000);
     btree_writeDB(fp, &mb, &size_mb);
     free(mb);
     fclose(fp);
@@ -285,6 +333,7 @@ int main(void){
     printf("Result of attempting to create a new db: %u\n", createResult);
     btree_readDB(fp, &mb, &size_mb);
     sumTime = 0;
+    subTotal = 0;
     for(long long i = 0; i < 1000000; i++){
         for(int j = 0; j < 64; j++){
             addKey[j] = rand();
@@ -293,8 +342,13 @@ int main(void){
         gettimeofday(&start, NULL);
         printf("%lli/1000000: Result of attempting to add a new key and val: %u\r", i, btree_addvalue(&mb, addKey, addVal, addPrev, &size_mb));
         gettimeofday(&stop, NULL);
-        sumTime = sumTime + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec)/1000000;
+        subTotal = subTotal + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec);
+        if((i%10000)==0){
+            sumTime = sumTime + (subTotal/1000000);
+            subTotal = 0;
+        }
     }
+    sumTime = sumTime + (subTotal/1000000);
     btree_writeDB(fp, &mb, &size_mb);
     free(mb);
     fclose(fp);
