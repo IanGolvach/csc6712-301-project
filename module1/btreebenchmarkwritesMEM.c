@@ -120,6 +120,7 @@ int main(void){
     fclose(fp);
     printf("\nMicrosecond Average Final = %lu\n1000 Write Trial 3\n",sumTime);
     fp = fopen("benchmark1000-3.btree","w+");
+    btree_readDB(fp, &mb, &size_mb);
     sumTime = 0;
     subTotal = 0;
     for(long long i = 0; i < 1000; i++){

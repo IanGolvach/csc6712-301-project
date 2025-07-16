@@ -1,38 +1,126 @@
-Current UStime = 1751161208728156
+Current UStime = 1752296083348711
 100 Write Trial 1
-99/100: Result of attempting to add a new key and val: 1
-Microsecond Average Final = 4
+Result of attempting to create a new db: 1
+99/100: Result of attempting to add a new key and val: 0
+Microsecond Average Final = 1
 100 Write Trial 2
-99/100: Result of attempting to add a new key and val: 1
-Microsecond Average Final = 4
+Result of attempting to create a new db: 1
+99/100: Result of attempting to add a new key and val: 0
+Microsecond Average Final = 0
 100 Write Trial 3
-99/100: Result of attempting to add a new key and val: 1
-Microsecond Average Final = 5
+Result of attempting to create a new db: 1
+99/100: Result of attempting to add a new key and val: 0
+Microsecond Average Final = 1
 1000 Write Trial 1
-999/1000: Result of attempting to add a new key and val: 1
-Microsecond Average Final = 22
+Result of attempting to create a new db: 1
+999/1000: Result of attempting to add a new key and val: 0
+Microsecond Average Final = 2
 1000 Write Trial 2
-999/1000: Result of attempting to add a new key and val: 1
-Microsecond Average Final = 22
+Result of attempting to create a new db: 1
+999/1000: Result of attempting to add a new key and val: 0
+Microsecond Average Final = 1
 1000 Write Trial 3
-999/1000: Result of attempting to add a new key and val: 1
-Microsecond Average Final = 22
+Result of attempting to create a new db: 1
+999/1000: Result of attempting to add a new key and val: 0
+Microsecond Average Final = 1
 10000 Write Trial 1
-9999/10000: Result of attempting to add a new key and val: 1
-Microsecond Average Final = 388
+Result of attempting to create a new db: 1
+9999/10000: Result of attempting to add a new key and val: 0
+Microsecond Average Final = 5
 10000 Write Trial 2
-9999/10000: Result of attempting to add a new key and val: 1
-Microsecond Average Final = 589
+Result of attempting to create a new db: 1
+9999/10000: Result of attempting to add a new key and val: 0
+Microsecond Average Final = 3
 10000 Write Trial 3
-9999/10000: Result of attempting to add a new key and val: 1
-Microsecond Average Final = 590
+Result of attempting to create a new db: 1
+9999/10000: Result of attempting to add a new key and val: 0
+Microsecond Average Final = 0
 100000 Write Trial 1
-99999/100000: Result of attempting to add a new key and val: 1
-Microsecond Average Final = 12772
+Result of attempting to create a new db: 1
+99999/100000: Result of attempting to add a new key and val: 0
+Microsecond Average Final = 2
 100000 Write Trial 2
-99999/100000: Result of attempting to add a new key and val: 1
-Microsecond Average Final = 12736
+Result of attempting to create a new db: 1
+99999/100000: Result of attempting to add a new key and val: 0
+Microsecond Average Final = 2
 100000 Write Trial 3
-99999/100000: Result of attempting to add a new key and val: 1
-Microsecond Average Final = 12611
+Result of attempting to create a new db: 1
+99999/100000: Result of attempting to add a new key and val: 0
+Microsecond Average Final = 15
+1000000 Write Trial 1
+Result of attempting to create a new db: 1
+999999/1000000: Result of attempting to add a new key and val: 0
+Microsecond Average Final = 16
+1000000 Write Trial 2
+Result of attempting to create a new db: 1
+999999/1000000: Result of attempting to add a new key and val: 0
+Microsecond Average Final = 21
+1000000 Write Trial 3
+Result of attempting to create a new db: 1
+999999/1000000: Result of attempting to add a new key and val: 0
+Microsecond Average Final = 15
+
+Corrected
+
+MEMORY
+Current UStime = 1752471307843794
+100 Write Trial 1
+Result of attempting to create a new db: 1
+99/100: Result of attempting to add a new key and val: 0
+Microsecond Average Final = 20
+100 Write Trial 2
+Result of attempting to create a new db: 1
+99/100: Result of attempting to add a new key and val: 0
+Microsecond Average Final = 21
+100 Write Trial 3
+Result of attempting to create a new db: 1
+99/100: Result of attempting to add a new key and val: 0
+Microsecond Average Final = 24
+1000 Write Trial 1
+Result of attempting to create a new db: 1
+999/1000: Result of attempting to add a new key and val: 0
+Microsecond Average Final = 44
+1000 Write Trial 2
+Result of attempting to create a new db: 1
+999/1000: Result of attempting to add a new key and val: 0
+Microsecond Average Final = 45
+1000 Write Trial 3
+999/1000: Result of attempting to add a new key and val: 0
+Microsecond Average Final = 50
+10000 Write Trial 1
+Result of attempting to create a new db: 1
+9999/10000: Result of attempting to add a new key and val: 0
+Microsecond Average Final = 192
+10000 Write Trial 2
+Result of attempting to create a new db: 1
+9999/10000: Result of attempting to add a new key and val: 0
+Microsecond Average Final = 192
+10000 Write Trial 3
+Result of attempting to create a new db: 1
+9999/10000: Result of attempting to add a new key and val: 0
+Microsecond Average Final = 178
+100000 Write Trial 1
+Result of attempting to create a new db: 1
+99999/100000: Result of attempting to add a new key and val: 0
+Microsecond Average Final = 2871
+100000 Write Trial 2
+Result of attempting to create a new db: 1
+99999/100000: Result of attempting to add a new key and val: 0
+Microsecond Average Final = 2928
+100000 Write Trial 3
+Result of attempting to create a new db: 1
+99999/100000: Result of attempting to add a new key and val: 0
+Microsecond Average Final = 2900
+1000000 Write Trial 1
+Result of attempting to create a new db: 1
+999999/1000000: Result of attempting to add a new key and val: 0
+Microsecond Average Final = 29153
+1000000 Write Trial 2
+Result of attempting to create a new db: 1
+999999/1000000: Result of attempting to add a new key and val: 0
+Microsecond Average Final = 29164
+1000000 Write Trial 3
+Result of attempting to create a new db: 1
+999999/1000000: Result of attempting to add a new key and val: 0
+Microsecond Average Final = 28971
 
