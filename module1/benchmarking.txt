@@ -124,3 +124,50 @@ Result of attempting to create a new db: 1
 999999/1000000: Result of attempting to add a new key and val: 0
 Microsecond Average Final = 28971
 
+EMORY
+Current UStime = 1752691761843312
+100 Read Trial 1
+99/100: Result of attempting to find random key: 0
+Microsecond Average Final = 12
+100 Read Trial 2
+99/100: Result of attempting to find random key: 0
+Microsecond Average Final = 6
+100 Read Trial 3
+99/100: Result of attempting to find random key: 0
+Microsecond Average Final = 6
+1000 Read Trial 1
+999/1000: Result of attempting to find random key: 0
+Microsecond Average Final = 50
+1000 Read Trial 2
+999/1000: Result of attempting to find random key: 0
+Microsecond Average Final = 46
+1000 Read Trial 3
+999/1000: Result of attempting to find random key: 0
+Microsecond Average Final = 46
+10000 Read Trial 1
+9999/10000: Result of attempting to find random key: 0
+Microsecond Average Final = 54
+10000 Read Trial 2
+9999/10000: Result of attempting to find random key: 0
+Microsecond Average Final = 57
+10000 Read Trial 3
+9999/10000: Result of attempting to find random key: 0
+Microsecond Average Final = 101
+100000 Read Trial 1
+99999/100000: Result of attempting to find random key: 0
+Microsecond Average Final = 68
+100000 Read Trial 2
+99999/100000: Result of attempting to find random key: 0
+Microsecond Average Final = 76
+100000 Read Trial 3
+99999/100000: Result of attempting to find random key: 0
+Microsecond Average Final = 86
+1000000 Read Trial 1
+999999/1000000: Result of attempting to find random key: 0
+Microsecond Average Final = 4
+1000000 Read Trial 2
+999999/1000000: Result of attempting to find random key: 0
+Microsecond Average Final = 22
+1000000 Read Trial 3
+999999/1000000: Result of attempting to find random key: 0
+Microsecond Average Final = 7
