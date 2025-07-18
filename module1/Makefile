@@ -6,6 +6,12 @@ all: btreebenchmarkwrites
 btreebenchmarkwrites: btreebenchmarkwrites.o btreeproj.o
 	$(CC) -o btreebenchmarkwrites btreeproj.o btreebenchmarkwrites.o
 
+btreetestsMEMRANDOM: btreetestsMEMRANDMIL.o btreereduxMEM.o
+	$(CC) -o btreetestsMEMRANDOM btreereduxMEM.o btreetestsMEMRANDMIL.o 
+
+btreetestsMEMRANDMIL.o: btreetestsMEMRANDMIL.c
+	$(CC) $(CFLAGS) -o btreetestsMEMRANDMIL.o btreetestsMEMRANDMIL.c
+
 btreebenchmarkwritesMEMORY: btreebenchmarkwritesMEM.o btreereduxMEM.o
 	$(CC) -o btreebenchmarkwritesMEMORY btreereduxMEM.o btreebenchmarkwritesMEM.o
 
