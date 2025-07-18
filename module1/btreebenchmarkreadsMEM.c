@@ -15,6 +15,9 @@ int main(void){
     // Write 100 trials
     printf("100 Read Trial 1\n");
     FILE* fp = fopen("benchmark100-1.btree","r+");
+    uint64_t size_mb;
+    uint8_t* mb;
+    btree_readDB(fp, &mb, &size_mb);
     uint64_t sumTime = 0;
     uint64_t subTotal = 0;
     for(long long i = 0; i < 100; i++){
@@ -23,16 +26,15 @@ int main(void){
             memset(addRet, 0, 64);
         }
         gettimeofday(&start, NULL);
-        printf("%lli/100: Result of attempting to find random key: %u\r", i, btree_findkey(fp, addKey, addRet));
+        printf("%lli/100: Result of attempting to find random key: %u\r", i, btree_findkey(&mb, addKey, addRet));
         gettimeofday(&stop, NULL);
         subTotal = subTotal + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec);
     }
     sumTime = subTotal / 100;
     printf("\nMicrosecond Average Final = %lu\n100 Read Trial 2\n",sumTime);
+    free(mb);
     fclose(fp);
-    FILE* fp = fopen("\nbenchmark100-2.btree","r+");
-    uint64_t size_mb;
-    uint8_t* mb;
+    fp = fopen("\nbenchmark100-2.btree","r+");
     btree_readDB(fp, &mb, &size_mb);
     sumTime = 0;
     subTotal = 0;
@@ -60,7 +62,7 @@ int main(void){
             memset(addRet, 0, 64);
         }
         gettimeofday(&start, NULL);
-        printf("%lli/100: Result of attempting to find random key: %u\r", i, btree_findkey(fp, addKey, addRet));
+        printf("%lli/100: Result of attempting to find random key: %u\r", i, btree_findkey(&mb, addKey, addRet));
         gettimeofday(&stop, NULL);
         subTotal = subTotal + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec);
     }
@@ -79,7 +81,7 @@ int main(void){
             memset(addRet, 0, 64);
         }
         gettimeofday(&start, NULL);
-        printf("%lli/1000: Result of attempting to find random key: %u\r", i, btree_findkey(fp, addKey, addRet));
+        printf("%lli/1000: Result of attempting to find random key: %u\r", i, btree_findkey(&mb, addKey, addRet));
         gettimeofday(&stop, NULL);
         subTotal = subTotal + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec);
     }
@@ -97,7 +99,7 @@ int main(void){
             memset(addRet, 0, 64);
         }
         gettimeofday(&start, NULL);
-        printf("%lli/1000: Result of attempting to find random key: %u\r", i, btree_findkey(fp, addKey, addRet));
+        printf("%lli/1000: Result of attempting to find random key: %u\r", i, btree_findkey(&mb, addKey, addRet));
         gettimeofday(&stop, NULL);
         subTotal = subTotal + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec);
     }
@@ -115,7 +117,7 @@ int main(void){
             memset(addRet, 0, 64);
         }
         gettimeofday(&start, NULL);
-        printf("%lli/1000: Result of attempting to find random key: %u\r", i, btree_findkey(fp, addKey, addRet));
+        printf("%lli/1000: Result of attempting to find random key: %u\r", i, btree_findkey(&mb, addKey, addRet));
         gettimeofday(&stop, NULL);
         subTotal = subTotal + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec);
     }
@@ -134,7 +136,7 @@ int main(void){
             memset(addRet, 0, 64);
         }
         gettimeofday(&start, NULL);
-        printf("%lli/10000: Result of attempting to find random key: %u\r", i, btree_findkey(fp, addKey, addRet));
+        printf("%lli/10000: Result of attempting to find random key: %u\r", i, btree_findkey(&mb, addKey, addRet));
         gettimeofday(&stop, NULL);
         subTotal = subTotal + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec);
     }
@@ -152,7 +154,7 @@ int main(void){
             memset(addRet, 0, 64);
         }
         gettimeofday(&start, NULL);
-        printf("%lli/10000: Result of attempting to find random key: %u\r", i, btree_findkey(fp, addKey, addRet));
+        printf("%lli/10000: Result of attempting to find random key: %u\r", i, btree_findkey(&mb, addKey, addRet));
         gettimeofday(&stop, NULL);
         subTotal = subTotal + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec);
     }
@@ -170,7 +172,7 @@ int main(void){
             memset(addRet, 0, 64);
         }
         gettimeofday(&start, NULL);
-        printf("%lli/10000: Result of attempting to find random key: %u\r", i, btree_findkey(fp, addKey, addRet));
+        printf("%lli/10000: Result of attempting to find random key: %u\r", i, btree_findkey(&mb, addKey, addRet));
         gettimeofday(&stop, NULL);
         subTotal = subTotal + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec);
     }
@@ -189,7 +191,7 @@ int main(void){
             memset(addRet, 0, 64);
         }
         gettimeofday(&start, NULL);
-        printf("%lli/100000: Result of attempting to find random key: %u\r", i, btree_findkey(fp, addKey, addRet));
+        printf("%lli/100000: Result of attempting to find random key: %u\r", i, btree_findkey(&mb, addKey, addRet));
         gettimeofday(&stop, NULL);
         subTotal = subTotal + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec);
         if((i%10000)==0){
@@ -211,7 +213,7 @@ int main(void){
             memset(addRet, 0, 64);
         }
         gettimeofday(&start, NULL);
-        printf("%lli/100000: Result of attempting to find random key: %u\r", i, btree_findkey(fp, addKey, addRet));
+        printf("%lli/100000: Result of attempting to find random key: %u\r", i, btree_findkey(&mb, addKey, addRet));
         gettimeofday(&stop, NULL);
         subTotal = subTotal + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec);
         if((i%10000)==0){
@@ -233,7 +235,7 @@ int main(void){
             memset(addRet, 0, 64);
         }
         gettimeofday(&start, NULL);
-        printf("%lli/100000: Result of attempting to find random key: %u\r", i, btree_findkey(fp, addKey, addRet));
+        printf("%lli/100000: Result of attempting to find random key: %u\r", i, btree_findkey(&mb, addKey, addRet));
         gettimeofday(&stop, NULL);
         subTotal = subTotal + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec);
         if((i%10000)==0){
@@ -256,7 +258,7 @@ int main(void){
             memset(addRet, 0, 64);
         }
         gettimeofday(&start, NULL);
-        printf("%lli/1000000: Result of attempting to find random key: %u\r", i, btree_findkey(fp, addKey, addRet));
+        printf("%lli/1000000: Result of attempting to find random key: %u\r", i, btree_findkey(&mb, addKey, addRet));
         gettimeofday(&stop, NULL);
         subTotal = subTotal + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec);
         if((i%10000)==0){
@@ -278,7 +280,7 @@ int main(void){
             memset(addRet, 0, 64);
         }
         gettimeofday(&start, NULL);
-        printf("%lli/1000000: Result of attempting to find random key: %u\r", i, btree_findkey(fp, addKey, addRet));
+        printf("%lli/1000000: Result of attempting to find random key: %u\r", i, btree_findkey(&mb, addKey, addRet));
         gettimeofday(&stop, NULL);
         subTotal = subTotal + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec);
         if((i%10000)==0){
@@ -300,7 +302,7 @@ int main(void){
             memset(addRet, 0, 64);
         }
         gettimeofday(&start, NULL);
-        printf("%lli/1000000: Result of attempting to find random key: %u\r", i, btree_findkey(fp, addKey, addRet));
+        printf("%lli/1000000: Result of attempting to find random key: %u\r", i, btree_findkey(&mb, addKey, addRet));
         gettimeofday(&stop, NULL);
         subTotal = subTotal + ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec);
         if((i%10000)==0){
